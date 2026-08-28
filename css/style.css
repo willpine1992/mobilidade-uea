@@ -439,9 +439,40 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 .stat-tile {
   flex: 1; background: var(--surface-alt); border: 1px solid var(--border-hairline);
   border-radius: var(--radius-sm); padding: 10px 12px; text-align: center;
+  transition: all var(--dur-fast) var(--ease);
 }
 .stat-tile b { display: block; font-size: 20px; color: var(--ink-primary); font-variant-numeric: tabular-nums; }
 .stat-tile small { font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-tile[data-key] { cursor: pointer; }
+.stat-tile[data-key]:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+.stat-tile.is-active { background: var(--accent-wash); border-color: var(--accent); }
+.stat-tile.is-active small { color: var(--accent-strong); }
+
+/* mini-cards em linha (Fluxo & Tipo de Mobilidade) */
+.mini-tiles { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.mini-tiles .stat-tile { flex: 1 1 90px; padding: 8px 10px; }
+.mini-tiles .stat-tile b { font-size: 17px; }
+.subgroup-label {
+  font-size: 10px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase;
+  letter-spacing: 0.05em; margin: 10px 0 6px;
+}
+.subgroup-label:first-child { margin-top: 0; }
+
+/* infográfico de gênero — barra dividida + legenda */
+.split-bar { display: flex; height: 14px; border-radius: var(--radius-pill); overflow: hidden; background: var(--surface-alt); margin-bottom: 10px; }
+.split-bar__seg { transition: width var(--dur-mid) var(--ease), opacity var(--dur-fast) var(--ease); }
+.split-legend { display: flex; flex-direction: column; gap: 2px; }
+.split-legend__row {
+  display: flex; align-items: center; gap: 9px; padding: 6px 8px; margin: 0 -8px;
+  border-radius: var(--radius-sm); cursor: pointer; transition: background var(--dur-fast) var(--ease);
+}
+.split-legend__row:hover { background: var(--surface-hover); }
+.split-legend__row.is-active { background: var(--accent-wash); }
+.split-legend__dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.split-legend__label { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--ink-secondary); }
+.split-legend__row.is-active .split-legend__label { color: var(--ink-primary); }
+.split-legend__val { font-size: 11.5px; font-weight: 700; color: var(--ink-primary); font-variant-numeric: tabular-nums; }
+.split-legend__pct { font-size: 10.5px; color: var(--ink-muted); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
 
 .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 8px; margin: 0 -8px; border-bottom: 1px solid var(--border-hairline); font-size: 12.5px; border-radius: var(--radius-sm); transition: background var(--dur-fast) var(--ease); }
 .info-row:last-child { border-bottom: none; }

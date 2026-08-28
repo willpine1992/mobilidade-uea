@@ -16,8 +16,8 @@ com um dicionário de dados e medidas DAX próprios.
 - 66 registros consolidados: 55 GCUB-MOB + 11 ERASMUS+.
 - Modalidades "Move La América" e "PROAFRI" já estão no modelo, mas ainda
   sem dados (`Aguardando dados`).
-- Atualizado pela última vez em 28/08/2026 (inclusão da coluna
-  `Nome_ABNT`, ver seção Privacidade).
+- Atualizado pela última vez em 28/08/2026 (inclusão das colunas
+  `Nome_ABNT` e `Sexo_Genero`, ver seção Privacidade).
 
 ## O modelo de dados
 
@@ -39,7 +39,10 @@ tem duas mobilidades aparece duas vezes). Principais colunas:
 | `Nivel_Academico` | Mestrado, Doutorado ou Graduação |
 | `Situacao_Participacao` | Recebido, A confirmar, Chegada prevista, Desistente, Em conferência – possível desligamento |
 | `Fonte_Financiamento` | CAPES, FAPEAM, CNPq, ERASMUS+ ou Não informado |
-| `Status_Qualidade_Dado` | Validado, Parcial ou Pendente — resultado da conferência do registro |
+| `Fluxo_Mobilidade` | direção do fluxo (`IN` — todos os 66 registros atuais; `OUT` está previsto no modelo mas ainda sem dados) |
+| `Tipo_Mobilidade` | Mobilidade acadêmica (GCUB-MOB) ou Mobilidade breve (ERASMUS+) |
+| `Programa_Original` | texto exatamente como veio na planilha de origem, antes da padronização por PPG — usado no painel "Programa Original (auditoria)" para expor variações de digitação |
+| `Status_Qualidade_Dado` | Validado, Parcial ou Pendente — resultado da conferência do registro (usado nos indicadores, não tem mais painel próprio no dashboard) |
 | `Incluir_Indicadores_Oficiais` / `Incluir_Recebidos` | flags booleanas (Sim/Não) que decidem se a linha entra nos indicadores oficiais e no cartão de recebidos — usadas em vez de recalcular regras a cada gráfico |
 
 ### Dimensões usadas neste painel
@@ -49,9 +52,10 @@ tem duas mobilidades aparece duas vezes). Principais colunas:
   revisados` / `Aguardando dados`) e público-alvo. Alimenta o segmentador
   de modalidade no topo do painel.
 - **`Dim_Participantes_dados reais`** — uma linha por pessoa. Além dos
-  campos restritos (ver Privacidade), tem a coluna `Nome_ABNT`, o nome
-  formatado como citação acadêmica (SOBRENOME, Inicial.) — é a única
-  informação desta dimensão usada na página pública.
+  campos restritos (ver Privacidade), tem as colunas `Nome_ABNT` (nome
+  formatado como citação acadêmica, SOBRENOME, Inicial.) e `Sexo_Genero`
+  (categoria demográfica agregada) — as únicas duas informações desta
+  dimensão usadas na página pública.
 - Dimensões auxiliares não carregadas neste painel (redundantes com as
   colunas já desnormalizadas na fato, mas presentes no modelo Power BI
   original): `Dim_Paises`, `Dim_Programas`, `Dim_Edicoes`,
@@ -91,12 +95,14 @@ restrita:
 
 - **`index.html` (pública — é a que está publicada no link acima)** —
   usa `Fato_Mobilidades` + `Dim_Programas_Mobilidade` (`js/data.js`), e
-  também a coluna `Nome_ABNT` de `Dim_Participantes_dados reais` na lista
-  "Participantes" (abaixo do gráfico "Evolução por edição"). O nome no
-  formato ABNT (sobrenome + inicial do primeiro nome) foi explicitamente
-  autorizado pela UEA/PROPESP para divulgação pública — é uma forma de
-  citação acadêmica, não o nome completo. Nenhum e-mail, telefone,
-  matrícula ou documento é exibido aqui.
+  também as colunas `Nome_ABNT` e `Sexo_Genero` de `Dim_Participantes_dados
+  reais` (na lista "Participantes" e no painel "Gênero", respectivamente).
+  Ambas foram explicitamente autorizadas pela UEA/PROPESP para divulgação
+  pública: o nome no formato ABNT (sobrenome + inicial do primeiro nome) é
+  uma forma de citação acadêmica, não o nome completo; o gênero é exibido
+  apenas como contagem agregada, nunca associado a um nome individual na
+  mesma visualização. Nenhum e-mail, telefone, matrícula ou documento é
+  exibido aqui.
 
 - **`interno.html` (uso interno — NÃO publicar)** — junta
   `Fato_Mobilidades` com `Dim_Participantes_dados reais` (nome completo,
@@ -136,16 +142,25 @@ python3 -m http.server 8080
 
 ## Funcionalidades (página pública)
 
-- Segmentador de modalidade (Todas / GCUB-MOB / ERASMUS+) no topo.
-- Filtro por edição (clique num card para isolar, clique de novo para
-  limpar).
+- **Filtros clicáveis em praticamente todo painel** — modalidade, edição,
+  nível acadêmico, gênero, situação da participação, continente, PPG,
+  país, fluxo/tipo de mobilidade, fonte de financiamento e programa
+  original — todos combináveis entre si.
+- **Barra de filtros ativos** logo abaixo dos indicadores, com um chip
+  removível por filtro e um botão "Limpar filtros".
 - Mapa coroplético dos países de origem (indicadores oficiais).
 - Evolução por edição (mestrado × doutorado × graduação), independente do
   filtro de edição, para manter a linha do tempo completa como contexto.
+- Infográfico de gênero (barra dividida + legenda com percentuais).
+- Painel "Programa Original (auditoria)" — ranking das variações de texto
+  exatamente como vieram da planilha de origem, antes da padronização por
+  PPG (útil para achar inconsistências de digitação).
 - Lista de participantes com nome em formato ABNT, com busca por nome/
   país/PPG, logo abaixo do gráfico de evolução.
-- Rankings de países e PPGs, qualidade dos dados e fonte de financiamento.
-- Tema claro/escuro persistido (localStorage), sem flash no carregamento.
+- Rankings de países e PPGs, fonte de financiamento, fluxo e tipo de
+  mobilidade.
+- Tema claro/escuro persistido (localStorage), sem flash no carregamento
+  e com todos os gráficos recolorindo corretamente ao trocar de tema.
 
 ## Publicar / atualizar o GitHub Pages
 
@@ -158,7 +173,7 @@ já cuida disso, mas vale checar após qualquer renomeação de arquivo).
 ## Atualizar os dados
 
 Quando a planilha de origem for atualizada (novas modalidades, novos
-registros, novo `Nome_ABNT`), regenerar `js/data.js` a partir de
-`Fato_Mobilidades`, `Dim_Programas_Mobilidade` e da coluna `Nome_ABNT` de
+registros), regenerar `js/data.js` a partir de `Fato_Mobilidades`,
+`Dim_Programas_Mobilidade` e das colunas `Nome_ABNT`/`Sexo_Genero` de
 `Dim_Participantes_dados reais` — sem reintroduzir e-mail, telefone,
 matrícula ou nome completo nesse arquivo.
