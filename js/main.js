@@ -109,7 +109,7 @@ const state = {
   continente: null,       // null = todos | Continente_Origem
   situacao: null,         // null = todas | Situacao_Participacao
   financiamento: null,    // null = todas | Fonte_Financiamento
-  nivel: null,            // null = todos | Nivel_Academico
+  nivel: [],              // [] = todos | array de Nivel_Academico (seleção múltipla)
   sexo: null,             // null = todos | Sexo_Genero
   fluxo: null,            // null = todos | Fluxo_Mobilidade
   tipo: null,             // null = todos | Tipo_Mobilidade
@@ -125,6 +125,8 @@ function loadFiltersFromStorage() {
     if (!raw) return;
     const saved = JSON.parse(raw);
     Object.keys(state).forEach((k) => { if (k in saved) state[k] = saved[k]; });
+    // migração defensiva: versões antigas guardavam nivel como string única
+    if (!Array.isArray(state.nivel)) state.nivel = state.nivel ? [state.nivel] : [];
   } catch (e) { /* localStorage indisponível ou JSON inválido — ignora */ }
 }
 function saveFiltersToStorage() {
@@ -151,7 +153,7 @@ function matchRow(r, exclude) {
   if (!exclude.has("continente") && state.continente && r.continente !== state.continente) return false;
   if (!exclude.has("situacao") && state.situacao && r.situacao !== state.situacao) return false;
   if (!exclude.has("financiamento") && state.financiamento && r.financiamento !== state.financiamento) return false;
-  if (!exclude.has("nivel") && state.nivel && r.nivel !== state.nivel) return false;
+  if (!exclude.has("nivel") && state.nivel.length && !state.nivel.includes(r.nivel)) return false;
   if (!exclude.has("sexo") && state.sexo && r.sexo !== state.sexo) return false;
   if (!exclude.has("fluxo") && state.fluxo && r.fluxo !== state.fluxo) return false;
   if (!exclude.has("tipo") && state.tipo && r.tipo !== state.tipo) return false;
@@ -176,6 +178,15 @@ function toggleFilter(dim, value) {
   renderAll();
 }
 
+// Variante para dimensões multi-seleção (array), ex.: nível acadêmico —
+// clicar acrescenta/remove o valor da lista em vez de substituir.
+function toggleMultiFilter(dim, value) {
+  const arr = state[dim];
+  const i = arr.indexOf(value);
+  if (i === -1) arr.push(value); else arr.splice(i, 1);
+  renderAll();
+}
+
 function clearFilters() {
   state.modalidade = "TODAS";
   state.ppg = null;
@@ -183,7 +194,7 @@ function clearFilters() {
   state.continente = null;
   state.situacao = null;
   state.financiamento = null;
-  state.nivel = null;
+  state.nivel = [];
   state.sexo = null;
   state.fluxo = null;
   state.tipo = null;
@@ -204,7 +215,7 @@ function activeFilterChips() {
   if (state.continente) chips.push({ dim: "continente", label: FILTER_LABELS.continente, value: state.continente });
   if (state.situacao) chips.push({ dim: "situacao", label: FILTER_LABELS.situacao, value: state.situacao });
   if (state.financiamento) chips.push({ dim: "financiamento", label: FILTER_LABELS.financiamento, value: state.financiamento });
-  if (state.nivel) chips.push({ dim: "nivel", label: FILTER_LABELS.nivel, value: state.nivel });
+  state.nivel.forEach((v) => chips.push({ dim: "nivel", label: FILTER_LABELS.nivel, value: v }));
   if (state.sexo) chips.push({ dim: "sexo", label: FILTER_LABELS.sexo, value: state.sexo });
   if (state.fluxo) chips.push({ dim: "fluxo", label: FILTER_LABELS.fluxo, value: state.fluxo });
   if (state.tipo) chips.push({ dim: "tipo", label: FILTER_LABELS.tipo, value: state.tipo });
@@ -225,7 +236,7 @@ function renderFiltersBar() {
     <span class="filters-bar__label">Filtros ativos</span>
     <div class="filters-bar__chips">
       ${chips.map((c) => `
-        <button type="button" class="filter-chip" data-dim="${c.dim}">
+        <button type="button" class="filter-chip" data-dim="${c.dim}" data-value="${escapeAttr(c.value)}">
           <span class="filter-chip__label">${c.label}:</span> ${c.value}
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
@@ -235,7 +246,13 @@ function renderFiltersBar() {
   `;
   bar.querySelectorAll(".filter-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      state[chip.dataset.dim] = chip.dataset.dim === "modalidade" ? "TODAS" : null;
+      const dim = chip.dataset.dim;
+      if (Array.isArray(state[dim])) {
+        const i = state[dim].indexOf(chip.dataset.value);
+        if (i !== -1) state[dim].splice(i, 1);
+      } else {
+        state[dim] = dim === "modalidade" ? "TODAS" : null;
+      }
       renderAll();
     });
   });
@@ -289,23 +306,27 @@ function renderStats(rows) {
 /* ---------------------------------------------------------------------- */
 /* Cartões clicáveis genéricos (nível acadêmico, fluxo, tipo)               */
 /* ---------------------------------------------------------------------- */
-function renderTiles(containerId, keys, dim, rowFn) {
+function renderTiles(containerId, keys, dim, rowFn, opts = {}) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const base = getRowsExcluding(dim);
   const c = countBy(base, rowFn);
+  const isActive = (key) => (opts.multi ? state[dim].includes(key) : state[dim] === key);
   el.innerHTML = keys.map((key) => `
-    <div class="stat-tile${state[dim] === key ? " is-active" : ""}" data-key="${key}">
+    <div class="stat-tile${isActive(key) ? " is-active" : ""}" data-key="${key}">
       <b>${fmt(c.get(key) || 0)}</b><small>${key}</small>
     </div>
   `).join("");
   el.querySelectorAll(".stat-tile[data-key]").forEach((tile) => {
-    tile.addEventListener("click", () => toggleFilter(dim, tile.dataset.key));
+    tile.addEventListener("click", () => {
+      if (opts.multi) toggleMultiFilter(dim, tile.dataset.key);
+      else toggleFilter(dim, tile.dataset.key);
+    });
   });
 }
 
 function renderNivelTiles() {
-  renderTiles("nivel-tiles", ["Mestrado", "Doutorado", "Graduação"], "nivel", (r) => r.nivel);
+  renderTiles("nivel-tiles", ["Mestrado", "Doutorado", "Graduação"], "nivel", (r) => r.nivel, { multi: true });
 }
 
 function renderFluxoTipoTiles() {
@@ -552,12 +573,12 @@ function renderEvolucaoChart() {
   const legendEl = document.getElementById("evolucao-legend");
   if (legendEl) {
     legendEl.innerHTML = niveis.map((niv) => `
-      <button type="button" class="flow-legend__item flow-legend__item--btn${state.nivel === niv ? " is-active" : ""}" data-nivel="${niv}">
+      <button type="button" class="flow-legend__item flow-legend__item--btn${state.nivel.includes(niv) ? " is-active" : ""}" data-nivel="${niv}">
         <span class="flow-legend__swatch" style="background:${nivelColor[niv]}; width:10px; height:10px; border-radius:3px;"></span>${niv}
       </button>
     `).join("");
     legendEl.querySelectorAll("[data-nivel]").forEach((btn) => {
-      btn.addEventListener("click", () => toggleFilter("nivel", btn.dataset.nivel));
+      btn.addEventListener("click", () => toggleMultiFilter("nivel", btn.dataset.nivel));
     });
   }
 

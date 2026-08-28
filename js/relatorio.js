@@ -62,7 +62,7 @@ function fmt(n) { return (n || 0).toLocaleString("pt-BR"); }
 const FILTERS_STORAGE_KEY = "mobuea-filters";
 const state = {
   modalidade: "TODAS", ppg: null, pais: null, continente: null, situacao: null,
-  financiamento: null, nivel: null, sexo: null, fluxo: null, tipo: null,
+  financiamento: null, nivel: [], sexo: null, fluxo: null, tipo: null,
 };
 const FILTER_LABELS = {
   modalidade: "Modalidade", ppg: "PPG", pais: "País", continente: "Continente",
@@ -75,6 +75,7 @@ function loadFiltersFromStorage() {
     if (!raw) return;
     const saved = JSON.parse(raw);
     Object.keys(state).forEach((k) => { if (k in saved) state[k] = saved[k]; });
+    if (!Array.isArray(state.nivel)) state.nivel = state.nivel ? [state.nivel] : [];
   } catch (e) { /* ignora */ }
 }
 function matchRow(r) {
@@ -84,7 +85,7 @@ function matchRow(r) {
   if (state.continente && r.continente !== state.continente) return false;
   if (state.situacao && r.situacao !== state.situacao) return false;
   if (state.financiamento && r.financiamento !== state.financiamento) return false;
-  if (state.nivel && r.nivel !== state.nivel) return false;
+  if (state.nivel.length && !state.nivel.includes(r.nivel)) return false;
   if (state.sexo && r.sexo !== state.sexo) return false;
   if (state.fluxo && r.fluxo !== state.fluxo) return false;
   if (state.tipo && r.tipo !== state.tipo) return false;
@@ -104,7 +105,7 @@ function activeFilterChips() {
   if (state.continente) chips.push(`${FILTER_LABELS.continente}: ${state.continente}`);
   if (state.situacao) chips.push(`${FILTER_LABELS.situacao}: ${state.situacao}`);
   if (state.financiamento) chips.push(`${FILTER_LABELS.financiamento}: ${state.financiamento}`);
-  if (state.nivel) chips.push(`${FILTER_LABELS.nivel}: ${state.nivel}`);
+  if (state.nivel.length) chips.push(`${FILTER_LABELS.nivel}: ${state.nivel.join(", ")}`);
   if (state.sexo) chips.push(`${FILTER_LABELS.sexo}: ${state.sexo}`);
   if (state.fluxo) chips.push(`${FILTER_LABELS.fluxo}: ${state.fluxo}`);
   if (state.tipo) chips.push(`${FILTER_LABELS.tipo}: ${state.tipo}`);

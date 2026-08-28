@@ -93,7 +93,7 @@ function countBy(arr, keyFn) {
 const FILTERS_STORAGE_KEY = "mobuea-filters";
 const state = {
   modalidade: "TODAS", ppg: null, pais: null, continente: null, situacao: null,
-  financiamento: null, nivel: null, sexo: null, fluxo: null, tipo: null,
+  financiamento: null, nivel: [], sexo: null, fluxo: null, tipo: null,
 };
 const FILTER_LABELS = {
   modalidade: "Modalidade", ppg: "PPG", pais: "País", continente: "Continente",
@@ -101,12 +101,17 @@ const FILTER_LABELS = {
   sexo: "Gênero", fluxo: "Fluxo", tipo: "Tipo",
 };
 
+function escapeAttr(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
 function loadFiltersFromStorage() {
   try {
     const raw = localStorage.getItem(FILTERS_STORAGE_KEY);
     if (!raw) return;
     const saved = JSON.parse(raw);
     Object.keys(state).forEach((k) => { if (k in saved) state[k] = saved[k]; });
+    if (!Array.isArray(state.nivel)) state.nivel = state.nivel ? [state.nivel] : [];
   } catch (e) { /* ignora */ }
 }
 function saveFiltersToStorage() {
@@ -120,7 +125,7 @@ function matchRow(r) {
   if (state.continente && r.continente !== state.continente) return false;
   if (state.situacao && r.situacao !== state.situacao) return false;
   if (state.financiamento && r.financiamento !== state.financiamento) return false;
-  if (state.nivel && r.nivel !== state.nivel) return false;
+  if (state.nivel.length && !state.nivel.includes(r.nivel)) return false;
   if (state.sexo && r.sexo !== state.sexo) return false;
   if (state.fluxo && r.fluxo !== state.fluxo) return false;
   if (state.tipo && r.tipo !== state.tipo) return false;
@@ -131,7 +136,7 @@ function getFilteredRows() { return MOB_ROWS.filter(matchRow); }
 function clearFilters() {
   state.modalidade = "TODAS";
   state.ppg = null; state.pais = null; state.continente = null; state.situacao = null;
-  state.financiamento = null; state.nivel = null; state.sexo = null; state.fluxo = null; state.tipo = null;
+  state.financiamento = null; state.nivel = []; state.sexo = null; state.fluxo = null; state.tipo = null;
   renderPage();
 }
 
@@ -149,7 +154,7 @@ function activeFilterChips() {
   if (state.continente) chips.push({ dim: "continente", label: FILTER_LABELS.continente, value: state.continente });
   if (state.situacao) chips.push({ dim: "situacao", label: FILTER_LABELS.situacao, value: state.situacao });
   if (state.financiamento) chips.push({ dim: "financiamento", label: FILTER_LABELS.financiamento, value: state.financiamento });
-  if (state.nivel) chips.push({ dim: "nivel", label: FILTER_LABELS.nivel, value: state.nivel });
+  state.nivel.forEach((v) => chips.push({ dim: "nivel", label: FILTER_LABELS.nivel, value: v }));
   if (state.sexo) chips.push({ dim: "sexo", label: FILTER_LABELS.sexo, value: state.sexo });
   if (state.fluxo) chips.push({ dim: "fluxo", label: FILTER_LABELS.fluxo, value: state.fluxo });
   if (state.tipo) chips.push({ dim: "tipo", label: FILTER_LABELS.tipo, value: state.tipo });
@@ -166,7 +171,7 @@ function renderFiltersBar() {
     <span class="filters-bar__label">Filtros ativos (definidos no Painel)</span>
     <div class="filters-bar__chips">
       ${chips.map((c) => `
-        <button type="button" class="filter-chip" data-dim="${c.dim}">
+        <button type="button" class="filter-chip" data-dim="${c.dim}" data-value="${escapeAttr(c.value)}">
           <span class="filter-chip__label">${c.label}:</span> ${c.value}
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
@@ -176,7 +181,13 @@ function renderFiltersBar() {
   `;
   bar.querySelectorAll(".filter-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      state[chip.dataset.dim] = chip.dataset.dim === "modalidade" ? "TODAS" : null;
+      const dim = chip.dataset.dim;
+      if (Array.isArray(state[dim])) {
+        const i = state[dim].indexOf(chip.dataset.value);
+        if (i !== -1) state[dim].splice(i, 1);
+      } else {
+        state[dim] = dim === "modalidade" ? "TODAS" : null;
+      }
       renderPage();
     });
   });

@@ -3,3 +3,6 @@
 interno.html
 js/data-interno.js
 js/interno.js
+
+# macOS
+.DS_Store
