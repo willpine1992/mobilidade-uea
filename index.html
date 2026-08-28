@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>(function(){var t=localStorage.getItem('mobuea-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<title>Mobilidade Acadêmica Internacional · UEA</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__brand">
+    <img src="image/propespuea-logo.svg" alt="PROPESP UEA" class="topbar__logo" />
+    <div class="topbar__title">
+      <strong>Mobilidade Acadêmica Internacional</strong>
+      <span>UEA · Estudantes estrangeiros recebidos na pós-graduação</span>
+    </div>
+  </div>
+
+  <nav class="topbar__nav">
+    <div class="seg-group" id="seg-modalidade"></div>
+    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Alternar tema">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </nav>
+</header>
+
+<div class="statbar" id="topbar-stats"></div>
+
+<main class="layout">
+  <!-- Coluna esquerda: filtros e edições -->
+  <div class="col">
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Edições</span>
+        <span class="panel__hint">clique para filtrar</span>
+      </div>
+      <div class="panel__body">
+        <div class="edicao-strip" id="edicao-strip"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Nível acadêmico</span>
+      </div>
+      <div class="panel__body">
+        <div class="tile-grid" id="nivel-tiles"></div>
+      </div>
+    </div>
+
+    <div class="panel panel--grow">
+      <div class="panel__header">
+        <span class="panel__title">Situação da participação</span>
+        <span class="panel__hint" id="situacao-total"></span>
+      </div>
+      <div class="panel__body" id="situacao-meters"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Modalidades do modelo</span>
+        <span class="panel__hint">status da base</span>
+      </div>
+      <div class="panel__body" id="modalidades-status"></div>
+    </div>
+  </div>
+
+  <!-- Coluna central: mapa + evolução -->
+  <div class="col">
+    <div class="panel panel--grow" style="min-height:360px;">
+      <div class="panel__header">
+        <span class="panel__title">Países de origem</span>
+        <span class="panel__hint">indicadores oficiais · passe o mouse sobre um país</span>
+      </div>
+      <div class="panel__body" style="overflow:visible;">
+        <div id="map-container" style="width:100%; height:340px;"></div>
+        <div class="map-legend">
+          <span class="muted">Menos</span>
+          <div class="map-legend__swatches" id="map-legend-swatches"></div>
+          <span class="muted">Mais</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Evolução por edição</span>
+        <span class="panel__hint">total oficial · mestrado vs. doutorado vs. graduação</span>
+      </div>
+      <div class="panel__body">
+        <div id="evolucao-chart" style="width:100%; height:220px;"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Qualidade dos dados</span>
+        <span class="panel__hint">status de conferência dos registros</span>
+      </div>
+      <div class="panel__body" id="qualidade-bars"></div>
+    </div>
+  </div>
+
+  <!-- Coluna direita: rankings -->
+  <div class="col">
+    <div class="panel panel--grow" style="min-height:220px;">
+      <div class="panel__header">
+        <span class="panel__title">Ranking de países</span>
+        <span class="panel__hint" id="pais-total"></span>
+      </div>
+      <div class="panel__body" id="pais-rank"></div>
+    </div>
+
+    <div class="panel panel--grow" style="min-height:220px;">
+      <div class="panel__header">
+        <span class="panel__title">Programas de pós-graduação</span>
+        <span class="panel__hint" id="ppg-total"></span>
+      </div>
+      <div class="panel__body" id="ppg-rank"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Fonte de financiamento</span>
+      </div>
+      <div class="panel__body" id="financiamento-bars"></div>
+    </div>
+
+    <div class="panel">
+      <div class="notice">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span>Painel construído apenas com dados agregados e não identificados. Nomes, contatos, documentos e demais dados pessoais dos participantes permanecem restritos à planilha de origem, conforme orientação da aba <strong>Instruções</strong> do modelo.</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="site-credit">Fonte: Modelo PowerBI Mobilidades UEA (GCUB-MOB · ERASMUS+) — atualizado 15/07/2026</div>
+<div class="viz-tooltip" id="viz-tooltip"></div>
+
+<script src="lib/d3.v7.min.js"></script>
+<script src="lib/topojson-client.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
