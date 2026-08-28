@@ -265,9 +265,8 @@ h1, h2, h3 { color: var(--ink-primary); margin: 0; font-weight: 700; letter-spac
 :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
 
 .site-credit {
-  position: fixed; left: 14px; bottom: 6px; z-index: 5;
-  font-size: 9.5px; font-weight: 500; color: var(--ink-muted);
-  opacity: 0.55; letter-spacing: 0.01em; pointer-events: none;
+  padding: 8px 28px 14px; font-size: 9.5px; font-weight: 500; color: var(--ink-muted);
+  opacity: 0.55; letter-spacing: 0.01em; background: var(--surface-alt);
 }
 
 /* ==========================================================================
@@ -603,13 +602,13 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 .map-legend__swatches span:first-child { border-radius: 4px 0 0 4px; }
 .map-legend__swatches span:last-child { border-radius: 0 4px 4px 0; }
 
-/* aviso de qualidade / dados restritos */
-.notice {
-  display: flex; gap: 9px; align-items: flex-start;
-  background: var(--surface-alt); border: 1px solid var(--border-hairline); border-left: 3px solid var(--accent);
-  border-radius: var(--radius-sm); padding: 10px 12px; font-size: 11.5px; color: var(--ink-secondary); line-height: 1.5;
+/* aviso de privacidade — barra horizontal de largura total, no rodapé */
+.footer-notice {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--surface-alt); border-top: 1px solid var(--border-hairline);
+  padding: 14px 28px; font-size: 11.5px; color: var(--ink-secondary); line-height: 1.5;
 }
-.notice svg { flex: none; margin-top: 1px; color: var(--accent-strong); }
+.footer-notice svg { flex: none; color: var(--accent-strong); }
 
 /* barra de filtros ativos — só aparece quando há pelo menos 1 filtro */
 .filters-bar {

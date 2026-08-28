@@ -159,13 +159,13 @@ python3 -m http.server 8080
 - Mapa coroplético dos países de origem (indicadores oficiais).
 - Evolução por edição (mestrado × doutorado × graduação).
 - Infográfico de gênero (barra dividida + legenda com percentuais).
-- Painel "PPG — Siglas" — mesma dimensão de `Programas de pós-graduação`,
-  em formato de etiquetas com o `Codigo_PPG` (sigla) em vez do nome
-  completo.
+- Painel "PPG — Siglas" — ranking de `Codigo_PPG` (sigla) em vez do nome
+  completo do programa; passe o mouse numa sigla para ver o nome completo.
 - Cartões de Fluxo (IN/OUT) e Tipo de Mobilidade.
 - Lista de participantes com nome em formato ABNT, com busca por nome/
   país/PPG, logo abaixo do gráfico de evolução.
-- Rankings de países e PPGs, fonte de financiamento.
+- Ranking de países, fonte de financiamento.
+- Barra de aviso de privacidade em toda a largura, no rodapé da página.
 - Tema claro/escuro persistido (localStorage), sem flash no carregamento
   e com todos os gráficos recolorindo corretamente ao trocar de tema.
 

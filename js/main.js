@@ -390,13 +390,14 @@ function renderContinenteBars() {
 /* ---------------------------------------------------------------------- */
 function renderPpgSiglas() {
   const rows = getRowsExcluding("ppg").filter((r) => r.oficial && r.ppg_codigo !== "Não informado");
+  const nameByCode = new Map(rows.map((r) => [r.ppg_codigo, r.ppg]));
   const c = countBy(rows, (r) => r.ppg_codigo);
   const entries = topEntries(c, 20);
   setHint("ppgsiglas-hint", state.ppg
-    ? `Filtrando por ${state.ppg}. Mesmo filtro do painel "Programas de pós-graduação", em siglas — clique de novo para limpar.`
-    : "Siglas de Codigo_PPG (mesmo filtro do painel \"Programas de pós-graduação\"). Clique numa sigla para filtrar.");
+    ? `Filtrando por ${nameByCode.get(state.ppg) || state.ppg} (${state.ppg}). Clique de novo para limpar.`
+    : "Siglas de Codigo_PPG, o programa de pós-graduação da UEA que recebeu o estudante. Clique numa sigla para filtrar.");
   document.getElementById("ppgsiglas-badges").innerHTML = entries.map(([codigo, v]) => `
-    <button type="button" class="badge badge--link${state.ppg === codigo ? " is-active" : ""}" data-ppg="${codigo}">${codigo} <span class="muted">${fmt(v)}</span></button>
+    <button type="button" class="badge badge--link${state.ppg === codigo ? " is-active" : ""}" data-ppg="${codigo}" title="${escapeAttr(nameByCode.get(codigo) || "")}">${codigo} <span class="muted">${fmt(v)}</span></button>
   `).join("") || '<div class="empty-hint">Sem dados.</div>';
 
   document.querySelectorAll("#ppgsiglas-badges .badge[data-ppg]").forEach((el) => {
@@ -690,25 +691,6 @@ function renderPaisRank() {
   });
 }
 
-function renderPpgRank() {
-  const rows = getRowsExcluding("ppg").filter((r) => r.oficial && r.ppg_codigo !== "Não informado");
-  const nameByCode = new Map(rows.map((r) => [r.ppg_codigo, r.ppg]));
-  const c = countBy(rows, (r) => r.ppg_codigo);
-  const entries = topEntries(c, 20);
-  setHint("ppg-total", state.ppg
-    ? `Filtrando por ${nameByCode.get(state.ppg) || state.ppg}. Clique de novo para limpar.`
-    : `${entries.length} PPGs · clique para filtrar.`);
-  document.getElementById("ppg-rank").innerHTML = entries.map(([codigo, v], i) => `
-    <div class="rank${state.ppg === codigo ? " is-active" : ""}" data-ppg="${codigo}">
-      <span class="rank__pos">${i + 1}</span><span class="rank__name">${nameByCode.get(codigo)}</span><span class="rank__val">${fmt(v)}</span>
-    </div>
-  `).join("") || '<div class="empty-hint">Sem dados.</div>';
-
-  document.querySelectorAll("#ppg-rank .rank[data-ppg]").forEach((el) => {
-    el.addEventListener("click", () => toggleFilter("ppg", el.dataset.ppg));
-  });
-}
-
 /* ---------------------------------------------------------------------- */
 /* Lista de participantes (nome no padrão ABNT) — abaixo de "Evolução por edição" */
 /* ---------------------------------------------------------------------- */
@@ -745,7 +727,6 @@ function renderAll() {
   renderFluxoTipoTiles();
   renderFinanciamentoBars();
   renderPaisRank();
-  renderPpgRank();
   renderPpgSiglas();
   renderParticipantesList(rows);
   renderMap();
