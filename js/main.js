@@ -245,24 +245,18 @@ function topEntries(map, n) {
 /* ---------------------------------------------------------------------- */
 function renderSegModalidade() {
   const base = getRowsExcluding("modalidade");
-  const total = base.length;
-  const gcub = base.filter((r) => r.modalidade === "GCUB-MOB").length;
-  const erasmus = base.filter((r) => r.modalidade === "ERASMUS+").length;
-  const opts = [
-    { id: "TODAS", label: "Todas", n: total },
-    { id: "GCUB-MOB", label: "GCUB-MOB", n: gcub },
-    { id: "ERASMUS+", label: "ERASMUS+", n: erasmus },
-  ];
+  const opts = [{ id: "TODAS", label: "Todas", n: base.length }];
+  for (const m of MOB_MODALIDADES) {
+    opts.push({ id: m.programa, label: m.nome, n: base.filter((r) => r.modalidade === m.programa).length });
+  }
   const el = document.getElementById("seg-modalidade");
   el.innerHTML = opts.map((o) =>
-    `<button type="button" class="seg-btn${state.modalidade === o.id ? " is-active" : ""}" data-modalidade="${o.id}">${o.label}<span class="n">${fmt(o.n)}</span></button>`
+    `<option value="${o.id}"${state.modalidade === o.id ? " selected" : ""}>${o.label} (${fmt(o.n)})</option>`
   ).join("");
-  el.querySelectorAll(".seg-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.modalidade = btn.dataset.modalidade;
-      renderAll();
-    });
-  });
+  el.onchange = () => {
+    state.modalidade = el.value;
+    renderAll();
+  };
 }
 
 /* ---------------------------------------------------------------------- */
@@ -744,7 +738,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* Tooltip de ajuda (hover parado por ~1.2s sobre [data-help])             */
 /* ---------------------------------------------------------------------- */
 function initHelpTooltips() {
-  let helpEl = null, timer = null;
+  let helpEl = null, timer = null, openIcon = null;
   function ensureHelp() {
     if (!helpEl) {
       helpEl = document.createElement("div");
@@ -753,23 +747,44 @@ function initHelpTooltips() {
     }
     return helpEl;
   }
+  function showFor(t) {
+    const el = ensureHelp();
+    el.textContent = t.dataset.help;
+    const r = t.getBoundingClientRect();
+    el.style.left = r.left + "px";
+    el.style.top = r.bottom + 10 + "px";
+    el.classList.add("is-visible");
+  }
+  function hide() {
+    if (helpEl) helpEl.classList.remove("is-visible");
+    openIcon = null;
+  }
+
+  // Ícone "!": clique abre/fecha o popup (em vez de hover parado).
+  document.body.addEventListener("click", (ev) => {
+    const icon = ev.target.closest(".hint-icon");
+    if (icon) {
+      ev.stopPropagation();
+      if (openIcon === icon) { hide(); return; }
+      showFor(icon);
+      openIcon = icon;
+      return;
+    }
+    if (openIcon && !ev.target.closest(".help-tooltip")) hide();
+  });
+
+  // Demais elementos com [data-help] (ex.: cartões de KPI do topo): hover
+  // parado por ~3s, como antes.
   document.body.addEventListener("mouseover", (ev) => {
     const t = ev.target.closest("[data-help]");
-    if (!t) return;
+    if (!t || t.classList.contains("hint-icon")) return;
     clearTimeout(timer);
-    timer = setTimeout(() => {
-      const el = ensureHelp();
-      el.textContent = t.dataset.help;
-      const r = t.getBoundingClientRect();
-      el.style.left = r.left + "px";
-      el.style.top = r.bottom + 10 + "px";
-      el.classList.add("is-visible");
-    }, 3000);
+    timer = setTimeout(() => showFor(t), 3000);
   });
   document.body.addEventListener("mouseout", (ev) => {
     const t = ev.target.closest("[data-help]");
-    if (!t) return;
+    if (!t || t.classList.contains("hint-icon")) return;
     clearTimeout(timer);
-    if (helpEl) helpEl.classList.remove("is-visible");
+    if (!openIcon) hide();
   });
 }

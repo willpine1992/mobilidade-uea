@@ -50,8 +50,8 @@ tem duas mobilidades aparece duas vezes). Principais colunas:
 
 - **`Dim_Programas_Mobilidade`** — as 4 modalidades (GCUB-MOB, ERASMUS+,
   Move La América, PROAFRI), com status da base (`Dados consolidados e
-  revisados` / `Aguardando dados`) e público-alvo. Alimenta o segmentador
-  de modalidade no topo do painel.
+  revisados` / `Aguardando dados`) e público-alvo. Alimenta a lista
+  suspensa de modalidade no topo do painel.
 - **`Dim_Participantes_dados reais`** — uma linha por pessoa. Além dos
   campos restritos (ver Privacidade), tem as colunas `Nome_ABNT` (nome
   formatado como citação acadêmica, SOBRENOME, I. I. I. — uma inicial por
@@ -123,10 +123,12 @@ restrita:
 
 ```
 index.html          página pública — publicada em GitHub Pages
+flowmap.html          página pública — mapa de fluxo animado (Manaus ⇄ países)
 interno.html         página de uso interno — nome completo, contato e acompanhamento por participante (gitignored, não publicar)
-css/style.css        tokens + componentes (design system PROPESP/UEA) + estilos específicos
-js/data.js           dados de Fato_Mobilidades + Nome_ABNT + dimensão de modalidades (sem e-mail/telefone)
+css/style.css        tokens + componentes (design system PROPESP/UEA) + estilos específicos (inclui o mapa de fluxo)
+js/data.js           dados de Fato_Mobilidades + Nome_ABNT/Sexo_Genero + dimensão de modalidades (sem e-mail/telefone)
 js/main.js           tema claro/escuro, filtros, mapa, gráficos, rankings, lista de participantes (index.html)
+js/flowmap.js         linhas animadas Manaus ⇄ país, com coordenadas de país fixas no próprio arquivo (flowmap.html)
 js/data-interno.js    join de Fato_Mobilidades + Dim_Participantes_dados reais + Fato_Acompanhamento + Pendencias_Conferencia (gitignored)
 js/interno.js         busca, tabela e painel de detalhe (interno.html)
 lib/                 d3.v7, topojson-client e o atlas mundial (countries-110m.json)
@@ -138,29 +140,36 @@ image/               logo PROPESP UEA
 ```
 cd "DASHBOARD MOBILIDADE"
 python3 -m http.server 8080
-# página pública:          http://localhost:8080/index.html
-# uso interno (restrito):  http://localhost:8080/interno.html
+# página pública (painel):     http://localhost:8080/index.html
+# página pública (mapa de fluxo): http://localhost:8080/flowmap.html
+# uso interno (restrito):      http://localhost:8080/interno.html
 ```
 
 ## Funcionalidades (página pública)
 
+### Painel (`index.html`)
+
+- **Lista suspensa de modalidade** no topo (Todas / GCUB-MOB / ERASMUS+ /
+  Move La América / PROAFRI, com contagem entre parênteses) — as duas
+  últimas aparecem mesmo com 0 registros, prontas para quando a base
+  chegar.
 - **Filtros clicáveis em praticamente todo painel** — modalidade, nível
-  acadêmico, gênero, situação da participação, continente, PPG (por nome
-  completo ou por sigla — mesma dimensão, dois painéis), país,
-  fluxo/tipo de mobilidade e fonte de financiamento — todos combináveis
-  entre si. Não há mais filtro por edição (o painel "Edições" foi
-  removido; "Evolução por edição" continua mostrando a linha do tempo
-  completa como contexto, sem ser um filtro).
+  acadêmico, gênero, situação da participação, continente, PPG (sigla),
+  país, fluxo/tipo de mobilidade e fonte de financiamento — todos
+  combináveis entre si. Não há mais filtro por edição (o painel
+  "Edições" foi removido; "Evolução por edição" continua mostrando a
+  linha do tempo completa como contexto, sem ser um filtro).
 - **Barra de filtros ativos** logo abaixo dos indicadores, com um chip
   removível por filtro e um botão "Limpar filtros".
 - **Ícones de ajuda (`!`)** no lugar do texto explicativo de cada painel —
-  passe o mouse e espere ~3s para ver o popup com a explicação completa
-  (mesmo padrão usado nos cartões de KPI do topo).
+  clique no ícone para abrir/fechar o popup com a explicação completa
+  (nos cartões de KPI do topo, que não têm ícone próprio, continua sendo
+  hover parado por ~3s).
 - Mapa coroplético dos países de origem (indicadores oficiais).
 - Evolução por edição (mestrado × doutorado × graduação).
 - Infográfico de gênero (barra dividida + legenda com percentuais).
-- Painel "PPG — Siglas" — ranking de `Codigo_PPG` (sigla) em vez do nome
-  completo do programa; passe o mouse numa sigla para ver o nome completo.
+- Painel "PPG — Siglas" — ranking de `Codigo_PPG` (sigla); passe o mouse
+  numa sigla para ver o nome completo do programa.
 - Cartões de Fluxo (IN/OUT) e Tipo de Mobilidade.
 - Lista de participantes com nome em formato ABNT, com busca por nome/
   país/PPG, logo abaixo do gráfico de evolução.
@@ -168,6 +177,25 @@ python3 -m http.server 8080
 - Barra de aviso de privacidade em toda a largura, no rodapé da página.
 - Tema claro/escuro persistido (localStorage), sem flash no carregamento
   e com todos os gráficos recolorindo corretamente ao trocar de tema.
+
+### Mapa de Fluxo (`flowmap.html`)
+
+Página própria (link "Mapa de Fluxo" no topo de ambas as páginas) com um
+mapa-múndi onde cada país de origem/destino se liga a Manaus por uma
+linha animada (efeito "formiguinha" via `stroke-dashoffset`):
+
+- Linha verde = fluxo **IN** (o país de origem → Manaus); linha laranja =
+  fluxo **OUT** (Manaus → país de destino) — hoje só há dados de IN
+  (`Fluxo_Mobilidade` = `OUT` ainda não tem registros reais na base).
+  A direção do desenho da linha (não uma seta) já indica o sentido do
+  fluxo.
+- Espessura da linha e tamanho do ponto do país são proporcionais ao
+  número de estudantes.
+- Coordenadas dos ~15 países envolvidos são aproximações fixas em
+  `js/flowmap.js` (`COUNTRY_COORDS`) — a planilha de origem não traz
+  latitude/longitude, só o país e o código ISO.
+- Tooltip ao passar o mouse numa linha ou num ponto mostra o país e a
+  quantidade.
 
 ## Publicar / atualizar o GitHub Pages
 
