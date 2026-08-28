@@ -28,6 +28,7 @@
 </header>
 
 <div class="statbar" id="topbar-stats"></div>
+<div class="filters-bar" id="filters-bar"></div>
 
 <main class="layout">
   <!-- Coluna esquerda: filtros e edições -->
@@ -62,7 +63,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Modalidades do modelo</span>
-        <span class="panel__hint">status da base</span>
+        <span class="panel__hint" id="modalidades-hint">status da base · clique para filtrar</span>
       </div>
       <div class="panel__body" id="modalidades-status"></div>
     </div>
@@ -112,7 +113,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Qualidade dos dados</span>
-        <span class="panel__hint">status de conferência dos registros</span>
+        <span class="panel__hint" id="qualidade-hint">status de conferência · clique para filtrar</span>
       </div>
       <div class="panel__body" id="qualidade-bars"></div>
     </div>
@@ -139,6 +140,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Fonte de financiamento</span>
+        <span class="panel__hint" id="financiamento-hint">clique para filtrar</span>
       </div>
       <div class="panel__body" id="financiamento-bars"></div>
     </div>

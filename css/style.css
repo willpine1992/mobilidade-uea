@@ -390,8 +390,10 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 .pickrow.is-active .label { color: var(--ink-primary); }
 .pickrow .count { margin-left: auto; font-size: 10.5px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 
-.rank { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-radius: var(--radius-sm); transition: background var(--dur-fast) var(--ease); cursor: pointer; }
+.rank { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-radius: var(--radius-sm); transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease); cursor: pointer; border: 1px solid transparent; }
 .rank:hover { background: var(--surface-hover); }
+.rank.is-active { background: var(--accent-wash); border-color: var(--border-strong); }
+.rank.is-active .rank__name { color: var(--ink-primary); }
 .rank__pos { width: 18px; font-size: 11px; font-weight: 800; color: var(--ink-muted); text-align: right; }
 .rank__name { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--ink-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rank__val { font-size: 11px; font-weight: 700; color: var(--accent-strong); font-variant-numeric: tabular-nums; }
@@ -441,12 +443,15 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 .stat-tile b { display: block; font-size: 20px; color: var(--ink-primary); font-variant-numeric: tabular-nums; }
 .stat-tile small { font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
-.info-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-hairline); font-size: 12.5px; }
+.info-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 8px; margin: 0 -8px; border-bottom: 1px solid var(--border-hairline); font-size: 12.5px; border-radius: var(--radius-sm); transition: background var(--dur-fast) var(--ease); }
 .info-row:last-child { border-bottom: none; }
 .info-row span:first-child { color: var(--ink-muted); font-weight: 600; }
 .info-row span:last-child { color: var(--ink-secondary); font-weight: 600; text-align: right; max-width: 60%; }
 .info-row a { color: var(--accent-strong); text-decoration: none; }
 .info-row a:hover { text-decoration: underline; }
+.info-row[data-programa]:hover { background: var(--surface-hover); }
+.info-row.is-active { background: var(--accent-wash); }
+.info-row.is-active span:first-child { color: var(--ink-primary); }
 
 /* ==========================================================================
    Tooltip global (usado por qualquer gráfico/elemento com dados sob o mouse)
@@ -539,7 +544,10 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 .tile-grid .stat-tile b { font-size: 22px; }
 
 /* linha de progresso (situação da participação, qualidade do dado) */
-.meter-row { display: flex; flex-direction: column; gap: 4px; padding: 8px 2px; }
+.meter-row { display: flex; flex-direction: column; gap: 4px; padding: 8px; margin: 0 -8px; border-radius: var(--radius-sm); cursor: pointer; transition: background var(--dur-fast) var(--ease); }
+.meter-row:hover { background: var(--surface-hover); }
+.meter-row.is-active { background: var(--accent-wash); }
+.meter-row.is-active .meter-row__label span { color: var(--ink-primary); }
 .meter-row__label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--ink-secondary); }
 .meter-row__label b { color: var(--ink-primary); font-variant-numeric: tabular-nums; }
 .meter-track { height: 7px; border-radius: var(--radius-pill); background: var(--surface-alt); overflow: hidden; }
@@ -571,7 +579,33 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 }
 .notice svg { flex: none; margin-top: 1px; color: var(--accent-strong); }
 
+/* barra de filtros ativos — só aparece quando há pelo menos 1 filtro */
+.filters-bar {
+  display: none; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 0; max-height: 0; overflow: hidden; opacity: 0;
+  border-bottom: 1px solid transparent; background: var(--surface-alt);
+  transition: max-height var(--dur-mid) var(--ease), opacity var(--dur-mid) var(--ease), padding var(--dur-mid) var(--ease);
+}
+.filters-bar.is-visible {
+  display: flex; max-height: 80px; opacity: 1; padding: 10px 28px;
+  border-bottom-color: var(--border-hairline);
+}
+.filters-bar__label { font-size: 10.5px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; flex: none; }
+.filters-bar__chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font); font-size: 11.5px; font-weight: 700; color: var(--accent-strong);
+  background: var(--accent-wash); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill); padding: 5px 10px 5px 12px; cursor: pointer;
+  transition: all var(--dur-fast) var(--ease);
+}
+.filter-chip:hover { background: var(--surface-hover); border-color: var(--ink-primary); }
+.filter-chip__label { color: var(--ink-muted); font-weight: 600; }
+.filter-chip svg { flex: none; opacity: 0.7; }
+.filters-bar__clear { flex: none; padding: 7px 14px; }
+
 @media (max-width: 720px) {
   .statbar { flex-wrap: wrap; gap: 16px 24px; }
+  .filters-bar.is-visible { padding: 10px 16px; }
   .tile-grid { grid-template-columns: repeat(3, 1fr); }
 }

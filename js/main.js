@@ -90,14 +90,112 @@ const EDICAO_ORDER = ["2022-2023", "2023-2024", "2024-2025", "2025-2026", "2026"
 
 const state = {
   modalidade: "TODAS", // TODAS | GCUB-MOB | ERASMUS+
-  edicao: null,        // null = todas
+  edicao: null,         // null = todas | "2022-2023" etc.
+  ppg: null,             // null = todos | Codigo_PPG
+  pais: null,            // null = todos | Codigo_Pais_ISO2
+  situacao: null,        // null = todas | Situacao_Participacao
+  financiamento: null,   // null = todas | Fonte_Financiamento
+  qualidade: null,       // null = todas | Status_Qualidade_Dado
 };
 
+const FILTER_LABELS = {
+  modalidade: "Modalidade",
+  edicao: "Edição",
+  ppg: "PPG",
+  pais: "País",
+  situacao: "Situação",
+  financiamento: "Financiamento",
+  qualidade: "Qualidade",
+};
+
+function matchRow(r, exclude) {
+  if (!exclude.has("modalidade") && state.modalidade !== "TODAS" && r.modalidade !== state.modalidade) return false;
+  if (!exclude.has("edicao") && state.edicao && r.edicao !== state.edicao) return false;
+  if (!exclude.has("ppg") && state.ppg && r.ppg_codigo !== state.ppg) return false;
+  if (!exclude.has("pais") && state.pais && r.iso2 !== state.pais) return false;
+  if (!exclude.has("situacao") && state.situacao && r.situacao !== state.situacao) return false;
+  if (!exclude.has("financiamento") && state.financiamento && r.financiamento !== state.financiamento) return false;
+  if (!exclude.has("qualidade") && state.qualidade && r.qualidade !== state.qualidade) return false;
+  return true;
+}
+
+const NO_EXCLUSION = new Set();
 function getFilteredRows() {
-  return MOB_ROWS.filter((r) =>
-    (state.modalidade === "TODAS" || r.modalidade === state.modalidade) &&
-    (!state.edicao || r.edicao === state.edicao)
-  );
+  return MOB_ROWS.filter((r) => matchRow(r, NO_EXCLUSION));
+}
+
+// Linhas para os painéis de seleção (rankings, barras, faixas): respeitam
+// todos os filtros ativos MENOS o da própria dimensão — assim a lista de
+// opções continua completa e o usuário pode trocar a seleção com um clique
+// (em vez de sumir assim que uma opção é escolhida).
+function getRowsExcluding(dim) {
+  return MOB_ROWS.filter((r) => matchRow(r, new Set([dim])));
+}
+
+function toggleFilter(dim, value) {
+  state[dim] = state[dim] === value ? null : value;
+  renderAll();
+}
+
+function clearFilters() {
+  state.modalidade = "TODAS";
+  state.edicao = null;
+  state.ppg = null;
+  state.pais = null;
+  state.situacao = null;
+  state.financiamento = null;
+  state.qualidade = null;
+  renderAll();
+}
+
+function activeFilterChips() {
+  const chips = [];
+  if (state.modalidade !== "TODAS") chips.push({ dim: "modalidade", label: FILTER_LABELS.modalidade, value: state.modalidade });
+  if (state.edicao) chips.push({ dim: "edicao", label: FILTER_LABELS.edicao, value: state.edicao });
+  if (state.ppg) {
+    const row = MOB_ROWS.find((r) => r.ppg_codigo === state.ppg);
+    chips.push({ dim: "ppg", label: FILTER_LABELS.ppg, value: row ? row.ppg : state.ppg });
+  }
+  if (state.pais) {
+    const row = MOB_ROWS.find((r) => r.iso2 === state.pais);
+    chips.push({ dim: "pais", label: FILTER_LABELS.pais, value: row ? row.pais : state.pais });
+  }
+  if (state.situacao) chips.push({ dim: "situacao", label: FILTER_LABELS.situacao, value: state.situacao });
+  if (state.financiamento) chips.push({ dim: "financiamento", label: FILTER_LABELS.financiamento, value: state.financiamento });
+  if (state.qualidade) chips.push({ dim: "qualidade", label: FILTER_LABELS.qualidade, value: state.qualidade });
+  return chips;
+}
+
+function renderFiltersBar() {
+  const bar = document.getElementById("filters-bar");
+  if (!bar) return;
+  const chips = activeFilterChips();
+  if (!chips.length) {
+    bar.classList.remove("is-visible");
+    bar.innerHTML = "";
+    return;
+  }
+  bar.classList.add("is-visible");
+  bar.innerHTML = `
+    <span class="filters-bar__label">Filtros ativos</span>
+    <div class="filters-bar__chips">
+      ${chips.map((c) => `
+        <button type="button" class="filter-chip" data-dim="${c.dim}">
+          <span class="filter-chip__label">${c.label}:</span> ${c.value}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      `).join("")}
+    </div>
+    <button type="button" class="btn btn--ghost filters-bar__clear" id="filters-clear-btn">Limpar filtros</button>
+  `;
+  bar.querySelectorAll(".filter-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      state[chip.dataset.dim] = chip.dataset.dim === "modalidade" ? "TODAS" : null;
+      renderAll();
+    });
+  });
+  const clearBtn = document.getElementById("filters-clear-btn");
+  if (clearBtn) clearBtn.addEventListener("click", clearFilters);
 }
 
 function countBy(arr, keyFn) {
@@ -117,9 +215,10 @@ function topEntries(map, n) {
 /* Segmentador de modalidade                                               */
 /* ---------------------------------------------------------------------- */
 function renderSegModalidade() {
-  const total = MOB_ROWS.length;
-  const gcub = MOB_ROWS.filter((r) => r.modalidade === "GCUB-MOB").length;
-  const erasmus = MOB_ROWS.filter((r) => r.modalidade === "ERASMUS+").length;
+  const base = getRowsExcluding("modalidade");
+  const total = base.length;
+  const gcub = base.filter((r) => r.modalidade === "GCUB-MOB").length;
+  const erasmus = base.filter((r) => r.modalidade === "ERASMUS+").length;
   const opts = [
     { id: "TODAS", label: "Todas", n: total },
     { id: "GCUB-MOB", label: "GCUB-MOB", n: gcub },
@@ -171,7 +270,7 @@ function renderStats(rows) {
 /* Faixa de edições                                                        */
 /* ---------------------------------------------------------------------- */
 function renderEdicaoStrip() {
-  const base = MOB_ROWS.filter((r) => state.modalidade === "TODAS" || r.modalidade === state.modalidade);
+  const base = getRowsExcluding("edicao");
   const counts = countBy(base, (r) => r.edicao);
   const el = document.getElementById("edicao-strip");
   el.innerHTML = EDICAO_ORDER.filter((ed) => counts.has(ed)).map((ed) => `
@@ -211,31 +310,49 @@ const SITUACAO_LABELS = [
   "Recebido", "A confirmar", "Chegada prevista", "Desistente", "Em conferência – possível desligamento",
 ];
 
-function renderSituacaoMeters(rows) {
-  const c = countBy(rows, (r) => r.situacao);
-  const total = rows.length || 1;
-  document.getElementById("situacao-total").textContent = `${fmt(rows.length)} registros`;
+function renderSituacaoMeters() {
+  const base = getRowsExcluding("situacao");
+  const c = countBy(base, (r) => r.situacao);
+  const total = base.length || 1;
+  document.getElementById("situacao-total").textContent = state.situacao
+    ? `filtrando por ${state.situacao}`
+    : `${fmt(base.length)} registros · clique para filtrar`;
   document.getElementById("situacao-meters").innerHTML = SITUACAO_LABELS.map((label) => {
     const v = c.get(label) || 0;
     const pct = Math.round((v / total) * 100);
     return `
-      <div class="meter-row">
+      <div class="meter-row${state.situacao === label ? " is-active" : ""}" data-situacao="${label}">
         <div class="meter-row__label"><span>${label}</span><b>${fmt(v)}</b></div>
         <div class="meter-track"><span style="width:${pct}%"></span></div>
       </div>`;
   }).join("");
+  document.querySelectorAll("#situacao-meters .meter-row").forEach((el) => {
+    el.addEventListener("click", () => toggleFilter("situacao", el.dataset.situacao));
+  });
 }
 
 /* ---------------------------------------------------------------------- */
 /* Status das modalidades do modelo                                        */
 /* ---------------------------------------------------------------------- */
 function renderModalidadesStatus() {
-  document.getElementById("modalidades-status").innerHTML = MOB_MODALIDADES.map((m) => `
-    <div class="info-row">
-      <span>${m.nome}${m.possui_dados === "Sim" ? "" : " · aguardando"}</span>
-      <span>${fmt(m.qtd_atual)} registro${m.qtd_atual === 1 ? "" : "s"}</span>
-    </div>
-  `).join("");
+  const base = getRowsExcluding("modalidade");
+  const counts = countBy(base, (r) => r.modalidade);
+  document.getElementById("modalidades-status").innerHTML = MOB_MODALIDADES.map((m) => {
+    const n = m.possui_dados === "Sim" ? (counts.get(m.programa) || 0) : m.qtd_atual;
+    const active = state.modalidade === m.programa;
+    return `
+      <div class="info-row${active ? " is-active" : ""}" data-programa="${m.programa}" style="cursor:pointer;">
+        <span>${m.nome}${m.possui_dados === "Sim" ? "" : " · aguardando"}</span>
+        <span>${fmt(n)} registro${n === 1 ? "" : "s"}</span>
+      </div>`;
+  }).join("");
+  document.querySelectorAll("#modalidades-status .info-row").forEach((el) => {
+    el.addEventListener("click", () => {
+      const p = el.dataset.programa;
+      state.modalidade = state.modalidade === p ? "TODAS" : p;
+      renderAll();
+    });
+  });
 }
 
 /* ---------------------------------------------------------------------- */
@@ -325,9 +442,7 @@ function renderMapLegend(maxV) {
 /* Evolução por edição (barras empilhadas por nível)                       */
 /* ---------------------------------------------------------------------- */
 function renderEvolucaoChart() {
-  const base = MOB_ROWS.filter((r) =>
-    (state.modalidade === "TODAS" || r.modalidade === state.modalidade) && r.oficial
-  );
+  const base = getRowsExcluding("edicao").filter((r) => r.oficial);
   const el = document.getElementById("evolucao-chart");
   if (!el) return;
   const width = el.clientWidth, height = el.clientHeight;
@@ -426,8 +541,11 @@ function renderHBars(containerId, entries, opts = {}) {
     .attr("x", 0).attr("y", barY).attr("height", barH).attr("rx", barH / 2)
     .attr("width", ([, v]) => Math.max(4, (v / maxV) * (width - 46)))
     .attr("fill", (_, i) => (opts.colorFn ? opts.colorFn(entries[i], i) : CAT_COLORS[i % CAT_COLORS.length]))
+    .attr("opacity", ([k]) => (!opts.activeKey || k === opts.activeKey ? 1 : 0.4))
+    .style("cursor", opts.onClick ? "pointer" : null)
     .on("mousemove", function (ev, [k, v]) { showTooltip(ev.clientX, ev.clientY, `<b>${k}</b><br>${fmt(v)} registro${v === 1 ? "" : "s"}`); })
-    .on("mouseleave", hideTooltip);
+    .on("mouseleave", hideTooltip)
+    .on("click", (ev, [k]) => { if (opts.onClick) opts.onClick(k); });
 
   gs.append("text").attr("class", "bar-value")
     .attr("x", width).attr("y", barY + barH / 2).attr("dy", "0.35em")
@@ -435,43 +553,75 @@ function renderHBars(containerId, entries, opts = {}) {
     .text(([, v]) => fmt(v));
 }
 
-function renderQualidadeBars(rows) {
+function renderQualidadeBars() {
+  const rows = getRowsExcluding("qualidade");
   const c = countBy(rows, (r) => r.qualidade);
   const order = ["Validado", "Parcial", "Pendente"];
   const colors = { "Validado": CAT_COLORS[2], "Parcial": CAT_COLORS[3], "Pendente": CAT_COLORS[7] };
   const entries = order.filter((k) => c.has(k)).map((k) => [k, c.get(k)]);
-  renderHBars("qualidade-bars", entries, { colorFn: ([k]) => colors[k] });
+  document.getElementById("qualidade-hint").textContent = state.qualidade
+    ? `filtrando por ${state.qualidade}`
+    : "status de conferência · clique para filtrar";
+  renderHBars("qualidade-bars", entries, {
+    colorFn: ([k]) => colors[k],
+    activeKey: state.qualidade,
+    onClick: (k) => toggleFilter("qualidade", k),
+  });
 }
 
-function renderFinanciamentoBars(rows) {
+function renderFinanciamentoBars() {
+  const rows = getRowsExcluding("financiamento");
   const c = countBy(rows, (r) => r.financiamento);
   const entries = topEntries(c, 8);
+  document.getElementById("financiamento-hint").textContent = state.financiamento
+    ? `filtrando por ${state.financiamento}`
+    : "clique para filtrar";
   renderHBars("financiamento-bars", entries, {
     colorFn: ([k]) => (k === "Não informado" ? readCssVar("--ink-muted") : CAT_COLORS[0]),
+    activeKey: state.financiamento,
+    onClick: (k) => toggleFilter("financiamento", k),
   });
 }
 
 /* ---------------------------------------------------------------------- */
 /* Rankings (países, PPGs)                                                 */
 /* ---------------------------------------------------------------------- */
-function renderPaisRank(rows) {
-  const oficiais = rows.filter((r) => r.oficial);
-  const c = countBy(oficiais, (r) => r.pais);
+function renderPaisRank() {
+  const rows = getRowsExcluding("pais").filter((r) => r.oficial);
+  const nameByIso = new Map(rows.map((r) => [r.iso2, r.pais]));
+  const c = countBy(rows, (r) => r.iso2);
   const entries = topEntries(c, 20);
-  document.getElementById("pais-total").textContent = `${entries.length} países`;
-  document.getElementById("pais-rank").innerHTML = entries.map(([pais, v], i) => `
-    <div class="rank"><span class="rank__pos">${i + 1}</span><span class="rank__name">${pais}</span><span class="rank__val">${fmt(v)}</span></div>
+  document.getElementById("pais-total").textContent = state.pais
+    ? `filtrando por ${nameByIso.get(state.pais) || state.pais}`
+    : `${entries.length} países · clique para filtrar`;
+  document.getElementById("pais-rank").innerHTML = entries.map(([iso2, v], i) => `
+    <div class="rank${state.pais === iso2 ? " is-active" : ""}" data-pais="${iso2}">
+      <span class="rank__pos">${i + 1}</span><span class="rank__name">${nameByIso.get(iso2)}</span><span class="rank__val">${fmt(v)}</span>
+    </div>
   `).join("") || '<div class="empty-hint">Sem dados.</div>';
+
+  document.querySelectorAll("#pais-rank .rank[data-pais]").forEach((el) => {
+    el.addEventListener("click", () => toggleFilter("pais", el.dataset.pais));
+  });
 }
 
-function renderPpgRank(rows) {
-  const oficiais = rows.filter((r) => r.oficial && r.ppg_codigo !== "Não informado");
-  const c = countBy(oficiais, (r) => r.ppg);
+function renderPpgRank() {
+  const rows = getRowsExcluding("ppg").filter((r) => r.oficial && r.ppg_codigo !== "Não informado");
+  const nameByCode = new Map(rows.map((r) => [r.ppg_codigo, r.ppg]));
+  const c = countBy(rows, (r) => r.ppg_codigo);
   const entries = topEntries(c, 20);
-  document.getElementById("ppg-total").textContent = `${entries.length} PPGs`;
-  document.getElementById("ppg-rank").innerHTML = entries.map(([ppg, v], i) => `
-    <div class="rank"><span class="rank__pos">${i + 1}</span><span class="rank__name">${ppg}</span><span class="rank__val">${fmt(v)}</span></div>
+  document.getElementById("ppg-total").textContent = state.ppg
+    ? `filtrando por ${nameByCode.get(state.ppg) || state.ppg}`
+    : `${entries.length} PPGs · clique para filtrar`;
+  document.getElementById("ppg-rank").innerHTML = entries.map(([codigo, v], i) => `
+    <div class="rank${state.ppg === codigo ? " is-active" : ""}" data-ppg="${codigo}">
+      <span class="rank__pos">${i + 1}</span><span class="rank__name">${nameByCode.get(codigo)}</span><span class="rank__val">${fmt(v)}</span>
+    </div>
   `).join("") || '<div class="empty-hint">Sem dados.</div>';
+
+  document.querySelectorAll("#ppg-rank .rank[data-ppg]").forEach((el) => {
+    el.addEventListener("click", () => toggleFilter("ppg", el.dataset.ppg));
+  });
 }
 
 /* ---------------------------------------------------------------------- */
@@ -499,16 +649,17 @@ function renderParticipantesList(rows) {
 /* ---------------------------------------------------------------------- */
 function renderAll() {
   const rows = getFilteredRows();
+  renderFiltersBar();
   renderSegModalidade();
   renderEdicaoStrip();
   renderStats(rows);
   renderNivelTiles(rows);
-  renderSituacaoMeters(rows);
+  renderSituacaoMeters();
   renderModalidadesStatus();
-  renderQualidadeBars(rows);
-  renderFinanciamentoBars(rows);
-  renderPaisRank(rows);
-  renderPpgRank(rows);
+  renderQualidadeBars();
+  renderFinanciamentoBars();
+  renderPaisRank();
+  renderPpgRank();
   renderParticipantesList(rows);
   renderMap();
   renderEvolucaoChart();
