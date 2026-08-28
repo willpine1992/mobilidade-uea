@@ -115,6 +115,22 @@ const state = {
   tipo: null,             // null = todos | Tipo_Mobilidade
 };
 
+// Filtros ativos são persistidos em localStorage (mesma chave usada pelo
+// mapa de fluxo) para que o recorte definido no painel continue valendo
+// ao navegar para flowmap.html, e vice-versa.
+const FILTERS_STORAGE_KEY = "mobuea-filters";
+function loadFiltersFromStorage() {
+  try {
+    const raw = localStorage.getItem(FILTERS_STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    Object.keys(state).forEach((k) => { if (k in saved) state[k] = saved[k]; });
+  } catch (e) { /* localStorage indisponível ou JSON inválido — ignora */ }
+}
+function saveFiltersToStorage() {
+  try { localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* ignora */ }
+}
+
 const FILTER_LABELS = {
   modalidade: "Modalidade",
   ppg: "PPG",
@@ -241,25 +257,6 @@ function topEntries(map, n) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Segmentador de modalidade                                               */
-/* ---------------------------------------------------------------------- */
-function renderSegModalidade() {
-  const base = getRowsExcluding("modalidade");
-  const opts = [{ id: "TODAS", label: "Todas", n: base.length }];
-  for (const m of MOB_MODALIDADES) {
-    opts.push({ id: m.programa, label: m.nome, n: base.filter((r) => r.modalidade === m.programa).length });
-  }
-  const el = document.getElementById("seg-modalidade");
-  el.innerHTML = opts.map((o) =>
-    `<option value="${o.id}"${state.modalidade === o.id ? " selected" : ""}>${o.label} (${fmt(o.n)})</option>`
-  ).join("");
-  el.onchange = () => {
-    state.modalidade = el.value;
-    renderAll();
-  };
-}
-
-/* ---------------------------------------------------------------------- */
 /* KPIs (statbar)                                                          */
 /* ---------------------------------------------------------------------- */
 function computeKpis(rows) {
@@ -365,8 +362,8 @@ function renderGenero() {
 /* ---------------------------------------------------------------------- */
 function renderContinenteBars() {
   const rows = getRowsExcluding("continente").filter((r) => r.oficial);
-  const order = ["África", "Europa", "América do Sul", "América do Norte", "Ásia"];
-  const colorIdx = { "África": 5, "Europa": 0, "América do Sul": 2, "América do Norte": 3, "Ásia": 6 };
+  const order = ["África", "Europa", "América do Sul", "América do Norte", "América Central", "Ásia"];
+  const colorIdx = { "África": 5, "Europa": 0, "América do Sul": 2, "América do Norte": 3, "América Central": 4, "Ásia": 6 };
   const c = countBy(rows, (r) => r.continente);
   const entries = order.filter((k) => c.has(k)).map((k) => [k, c.get(k)]);
   setHint("continente-hint", state.continente
@@ -437,12 +434,12 @@ function renderModalidadesStatus() {
     const n = m.possui_dados === "Sim" ? (counts.get(m.programa) || 0) : m.qtd_atual;
     const active = state.modalidade === m.programa;
     return `
-      <div class="info-row${active ? " is-active" : ""}" data-programa="${m.programa}" style="cursor:pointer;">
-        <span>${m.nome}${m.possui_dados === "Sim" ? "" : " · aguardando"}</span>
-        <span>${fmt(n)} registro${n === 1 ? "" : "s"}</span>
-      </div>`;
+      <button type="button" class="mobilidade-btn${active ? " is-active" : ""}" data-programa="${m.programa}">
+        <span>${m.nome}</span>
+        <span>${fmt(n)}</span>
+      </button>`;
   }).join("");
-  document.querySelectorAll("#modalidades-status .info-row").forEach((el) => {
+  document.querySelectorAll("#modalidades-status .mobilidade-btn").forEach((el) => {
     el.addEventListener("click", () => {
       const p = el.dataset.programa;
       state.modalidade = state.modalidade === p ? "TODAS" : p;
@@ -537,6 +534,9 @@ function renderMapLegend(maxV) {
 /* ---------------------------------------------------------------------- */
 /* Evolução por edição (barras empilhadas por nível)                       */
 /* ---------------------------------------------------------------------- */
+let evolucaoShowBars = true;
+let evolucaoShowLine = true;
+
 function renderEvolucaoChart() {
   const base = getFilteredRows().filter((r) => r.oficial);
   const el = document.getElementById("evolucao-chart");
@@ -548,6 +548,18 @@ function renderEvolucaoChart() {
   const edicoes = EDICAO_ORDER.filter((ed) => base.some((r) => r.edicao === ed));
   const niveis = ["Mestrado", "Doutorado", "Graduação"];
   const nivelColor = { "Mestrado": CAT_COLORS[0], "Doutorado": CAT_COLORS[2], "Graduação": CAT_COLORS[3] };
+
+  const legendEl = document.getElementById("evolucao-legend");
+  if (legendEl) {
+    legendEl.innerHTML = niveis.map((niv) => `
+      <button type="button" class="flow-legend__item flow-legend__item--btn${state.nivel === niv ? " is-active" : ""}" data-nivel="${niv}">
+        <span class="flow-legend__swatch" style="background:${nivelColor[niv]}; width:10px; height:10px; border-radius:3px;"></span>${niv}
+      </button>
+    `).join("");
+    legendEl.querySelectorAll("[data-nivel]").forEach((btn) => {
+      btn.addEventListener("click", () => toggleFilter("nivel", btn.dataset.nivel));
+    });
+  }
 
   const data = edicoes.map((ed) => {
     const rs = base.filter((r) => r.edicao === ed);
@@ -561,14 +573,19 @@ function renderEvolucaoChart() {
     row.total = y0;
     return row;
   });
+  let acumulado = 0;
+  for (const d of data) { acumulado += d.total; d.acumulado = acumulado; }
 
-  const margin = { top: 10, right: 10, bottom: 26, left: 30 };
+  const margin = { top: 14, right: 46, bottom: 26, left: 40 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
   const maxTotal = d3.max(data, (d) => d.total) || 1;
+  const maxAcumulado = d3.max(data, (d) => d.acumulado) || 1;
+  const lineColor = readCssVar("--ink-primary");
 
   const x = d3.scaleBand().domain(edicoes).range([0, innerW]).padding(0.32);
   const y = d3.scaleLinear().domain([0, maxTotal]).nice().range([innerH, 0]);
+  const yRight = d3.scaleLinear().domain([0, maxAcumulado]).nice().range([innerH, 0]);
 
   const svg = d3.select(el).append("svg").attr("width", width).attr("height", height);
   const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
@@ -579,26 +596,77 @@ function renderEvolucaoChart() {
     .call((sel) => sel.select(".domain").attr("stroke", readCssVar("--border-hairline")))
     .selectAll("text").attr("class", "bar-label").attr("fill", readCssVar("--ink-muted"));
 
-  g.append("g")
-    .call(d3.axisLeft(y).ticks(4).tickSize(-innerW))
-    .call((sel) => sel.select(".domain").remove())
-    .call((sel) => sel.selectAll("line").attr("stroke", readCssVar("--border-hairline")))
-    .selectAll("text").attr("class", "bar-label").attr("fill", readCssVar("--ink-muted"));
+  if (evolucaoShowBars) {
+    g.append("g")
+      .call(d3.axisLeft(y).ticks(4).tickSize(-innerW))
+      .call((sel) => sel.select(".domain").remove())
+      .call((sel) => sel.selectAll("line").attr("stroke", readCssVar("--border-hairline")))
+      .selectAll("text").attr("class", "bar-label").attr("fill", readCssVar("--ink-muted"));
 
-  const edGroups = g.selectAll("g.ed").data(data).join("g")
-    .attr("class", "ed")
-    .attr("transform", (d) => `translate(${x(d.edicao)},0)`);
+    g.append("text")
+      .attr("class", "bar-label").attr("fill", readCssVar("--ink-muted"))
+      .attr("transform", `translate(${-margin.left + 10},${innerH / 2}) rotate(-90)`)
+      .attr("text-anchor", "middle")
+      .text("Alunos por edição");
+  }
 
-  for (const niv of niveis) {
-    edGroups.append("rect")
-      .attr("y", (d) => y(d[niv].y1))
-      .attr("height", (d) => Math.max(0, y(d[niv].y0) - y(d[niv].y1)))
-      .attr("width", x.bandwidth())
-      .attr("fill", nivelColor[niv])
-      .attr("rx", 3)
+  if (evolucaoShowLine) {
+    g.append("g")
+      .attr("transform", `translate(${innerW},0)`)
+      .call(d3.axisRight(yRight).ticks(4).tickSize(0))
+      .call((sel) => sel.select(".domain").attr("stroke", readCssVar("--border-hairline")))
+      .selectAll("text").attr("class", "bar-label").attr("fill", lineColor);
+
+    g.append("text")
+      .attr("class", "bar-label").attr("fill", lineColor)
+      .attr("transform", `translate(${innerW + margin.right - 10},${innerH / 2}) rotate(90)`)
+      .attr("text-anchor", "middle")
+      .text("Total de alunos participantes");
+  }
+
+  if (evolucaoShowBars) {
+    const edGroups = g.selectAll("g.ed").data(data).join("g")
+      .attr("class", "ed")
+      .attr("transform", (d) => `translate(${x(d.edicao)},0)`);
+
+    for (const niv of niveis) {
+      edGroups.append("rect")
+        .attr("y", (d) => y(d[niv].y1))
+        .attr("height", (d) => Math.max(0, y(d[niv].y0) - y(d[niv].y1)))
+        .attr("width", x.bandwidth())
+        .attr("fill", nivelColor[niv])
+        .attr("rx", 3)
+        .style("cursor", "pointer")
+        .on("mousemove", function (ev, d) {
+          showTooltip(ev.clientX, ev.clientY, `<b>${d.edicao}</b><br>${niv}: ${fmt(d[niv].v)}<br>Total oficial: ${fmt(d.total)}<br>Acumulado: ${fmt(d.acumulado)}`);
+        })
+        .on("mouseleave", hideTooltip);
+    }
+  }
+
+  // linha de alunos acumulados (eixo direito)
+  if (evolucaoShowLine) {
+    const lineGen = d3.line()
+      .x((d) => x(d.edicao) + x.bandwidth() / 2)
+      .y((d) => yRight(d.acumulado));
+
+    g.append("path")
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", lineColor)
+      .attr("stroke-width", 2)
+      .attr("stroke-dasharray", "3 3")
+      .attr("d", lineGen);
+
+    g.selectAll("circle.acumulado").data(data).join("circle")
+      .attr("class", "acumulado")
+      .attr("cx", (d) => x(d.edicao) + x.bandwidth() / 2)
+      .attr("cy", (d) => yRight(d.acumulado))
+      .attr("r", 3.5)
+      .attr("fill", lineColor)
       .style("cursor", "pointer")
       .on("mousemove", function (ev, d) {
-        showTooltip(ev.clientX, ev.clientY, `<b>${d.edicao}</b><br>${niv}: ${fmt(d[niv].v)}<br>Total oficial: ${fmt(d.total)}`);
+        showTooltip(ev.clientX, ev.clientY, `<b>${d.edicao}</b><br>Total acumulado: ${fmt(d.acumulado)} aluno${d.acumulado === 1 ? "" : "s"}`);
       })
       .on("mouseleave", hideTooltip);
   }
@@ -649,6 +717,67 @@ function renderHBars(containerId, entries, opts = {}) {
     .text(([, v]) => fmt(v));
 }
 
+// Barras alinhadas à direita, com o rótulo (nome + valor) escrito dentro
+// da própria barra — usado no ranking de países.
+function renderHBarsRight(containerId, entries, opts = {}) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = "";
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty-hint">Sem dados.</div>';
+    return;
+  }
+  const width = el.clientWidth || 260;
+  const rowH = opts.rowH || 30;
+  const height = rowH * entries.length;
+  const maxV = d3.max(entries, (e) => e[1]) || 1;
+
+  const svg = d3.select(el).append("svg").attr("width", width).attr("height", height);
+  const gs = svg.selectAll("g.bar-track").data(entries).join("g")
+    .attr("class", "bar-track")
+    .attr("transform", (_, i) => `translate(0, ${i * rowH})`);
+
+  const barY = rowH * 0.15, barH = rowH * 0.7;
+  gs.append("rect").attr("class", "bg")
+    .attr("x", 0).attr("y", barY).attr("width", width).attr("height", barH).attr("rx", barH / 2);
+
+  gs.append("rect").attr("class", "fg")
+    .attr("y", barY).attr("height", barH).attr("rx", barH / 2)
+    .attr("width", ([, v]) => (v / maxV) * width)
+    .attr("x", ([, v]) => width - (v / maxV) * width)
+    .attr("fill", (_, i) => (opts.colorFn ? opts.colorFn(entries[i], i) : "var(--accent)"))
+    .attr("opacity", ([k]) => (!opts.activeKey || k === opts.activeKey ? 1 : 0.4))
+    .style("cursor", opts.onClick ? "pointer" : null)
+    .on("mousemove", function (ev, [k, v]) {
+      const label = opts.nameFn ? opts.nameFn(k) : k;
+      showTooltip(ev.clientX, ev.clientY, `<b>${label}</b><br>${fmt(v)} ${opts.unit || "registros"}`);
+    })
+    .on("mouseleave", hideTooltip)
+    .on("click", (ev, [k]) => { if (opts.onClick) opts.onClick(k); });
+
+  gs.append("text").attr("class", "bar-label-onfill")
+    .attr("x", width - 10).attr("y", barY + barH / 2).attr("dy", "0.35em")
+    .attr("text-anchor", "end")
+    .style("pointer-events", "none")
+    .text((d) => {
+      const [k, v] = d;
+      const label = opts.nameFn ? opts.nameFn(k) : k;
+      return `${truncateLabel(label, 24)} · ${fmt(v)}`;
+    });
+
+  // segunda passada: mede o texto de fato e garante que a barra colorida
+  // seja larga o suficiente pra cobri-lo (nomes longos com valor baixo
+  // não podem deixar o texto vazando pro fundo escuro sem cor).
+  gs.each(function (d) {
+    const g = d3.select(this);
+    const textNode = g.select("text").node();
+    const textW = textNode.getComputedTextLength();
+    const valueW = (d[1] / maxV) * width;
+    const bw = Math.min(width, Math.max(valueW, textW + 24));
+    g.select("rect.fg").attr("width", bw).attr("x", width - bw);
+  });
+}
+
 function renderFinanciamentoBars() {
   const rows = getRowsExcluding("financiamento");
   const c = countBy(rows, (r) => r.financiamento);
@@ -674,14 +803,11 @@ function renderPaisRank() {
   setHint("pais-total", state.pais
     ? `Filtrando por ${nameByIso.get(state.pais) || state.pais}. Clique de novo para limpar.`
     : `${entries.length} países · clique para filtrar.`);
-  document.getElementById("pais-rank").innerHTML = entries.map(([iso2, v], i) => `
-    <div class="rank${state.pais === iso2 ? " is-active" : ""}" data-pais="${iso2}">
-      <span class="rank__pos">${i + 1}</span><span class="rank__name">${nameByIso.get(iso2)}</span><span class="rank__val">${fmt(v)}</span>
-    </div>
-  `).join("") || '<div class="empty-hint">Sem dados.</div>';
-
-  document.querySelectorAll("#pais-rank .rank[data-pais]").forEach((el) => {
-    el.addEventListener("click", () => toggleFilter("pais", el.dataset.pais));
+  renderHBarsRight("pais-rank", entries, {
+    nameFn: (iso2) => nameByIso.get(iso2) || iso2,
+    activeKey: state.pais,
+    unit: "estudantes",
+    onClick: (iso2) => toggleFilter("pais", iso2),
   });
 }
 
@@ -709,9 +835,9 @@ function renderParticipantesList(rows) {
 /* Orquestração                                                            */
 /* ---------------------------------------------------------------------- */
 function renderAll() {
+  saveFiltersToStorage();
   const rows = getFilteredRows();
   renderFiltersBar();
-  renderSegModalidade();
   renderStats(rows);
   renderNivelTiles();
   renderGenero();
@@ -728,10 +854,28 @@ function renderAll() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  loadFiltersFromStorage();
   initThemeToggle();
   renderAll();
   initHelpTooltips();
   document.getElementById("participantes-search").addEventListener("input", () => renderParticipantesList(getFilteredRows()));
+
+  const evolucaoToggleBars = document.getElementById("evolucao-toggle-bars");
+  if (evolucaoToggleBars) {
+    evolucaoToggleBars.addEventListener("click", () => {
+      evolucaoShowBars = !evolucaoShowBars;
+      evolucaoToggleBars.classList.toggle("is-active", evolucaoShowBars);
+      renderEvolucaoChart();
+    });
+  }
+  const evolucaoToggleLine = document.getElementById("evolucao-toggle-line");
+  if (evolucaoToggleLine) {
+    evolucaoToggleLine.addEventListener("click", () => {
+      evolucaoShowLine = !evolucaoShowLine;
+      evolucaoToggleLine.classList.toggle("is-active", evolucaoShowLine);
+      renderEvolucaoChart();
+    });
+  }
 });
 
 /* ---------------------------------------------------------------------- */

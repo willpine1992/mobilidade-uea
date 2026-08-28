@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<script>(function(){var t=localStorage.getItem('mobuea-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<title>Relatório · Mobilidade UEA</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__brand">
+    <img src="image/propespuea-logo.svg" alt="PROPESP UEA" class="topbar__logo" />
+    <div class="topbar__title">
+      <strong>Relatório de Mobilidade</strong>
+      <span>UEA · Gerado a partir do recorte atual do Painel</span>
+    </div>
+  </div>
+  <nav class="topbar__nav">
+    <a href="index.html" class="topbar__link">Voltar ao Painel</a>
+    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Alternar tema">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </nav>
+</header>
+
+<main class="report-page">
+  <div class="report-header">
+    <h1>Relatório — Mobilidade Acadêmica Internacional UEA</h1>
+    <div class="meta" id="report-meta"></div>
+  </div>
+
+  <div class="report-actions">
+    <button type="button" class="btn" id="export-pdf-btn">Exportar PDF</button>
+    <a href="index.html" class="btn btn--ghost">Voltar ao Painel</a>
+  </div>
+
+  <div class="report-section">
+    <h2>Resumo</h2>
+    <div class="report-kpis" id="report-kpis"></div>
+  </div>
+
+  <div class="report-section">
+    <h2>Países de origem</h2>
+    <div id="map-container" style="width:100%; height:320px;"></div>
+    <div class="map-legend">
+      <span class="muted">Menos</span>
+      <div class="map-legend__swatches" id="map-legend-swatches"></div>
+      <span class="muted">Mais</span>
+    </div>
+  </div>
+
+  <div class="report-section">
+    <h2>Evolução por edição</h2>
+    <div id="evolucao-chart" style="width:100%; height:220px;"></div>
+    <div class="flow-legend" id="evolucao-legend" style="padding:6px 0 0;"></div>
+  </div>
+
+  <div class="report-section">
+    <h2>Por programa de mobilidade</h2>
+    <table class="report-table" id="tbl-modalidade"></table>
+  </div>
+
+  <div class="report-section">
+    <h2>Por país de origem (indicadores oficiais)</h2>
+    <table class="report-table" id="tbl-pais"></table>
+  </div>
+
+  <div class="report-section">
+    <h2>Por programa de pós-graduação (indicadores oficiais)</h2>
+    <table class="report-table" id="tbl-ppg"></table>
+  </div>
+
+  <div class="report-section">
+    <h2>Nível acadêmico</h2>
+    <table class="report-table" id="tbl-nivel"></table>
+  </div>
+
+  <div class="report-section">
+    <h2>Gênero</h2>
+    <table class="report-table" id="tbl-genero"></table>
+  </div>
+
+  <div class="report-section">
+    <h2>Situação da participação</h2>
+    <table class="report-table" id="tbl-situacao"></table>
+  </div>
+
+  <div class="report-section">
+    <h2>Fonte de financiamento</h2>
+    <table class="report-table" id="tbl-financiamento"></table>
+  </div>
+
+  <div class="report-section">
+    <h2>Continente de origem (indicadores oficiais)</h2>
+    <table class="report-table" id="tbl-continente"></table>
+  </div>
+
+  <div class="report-section">
+    <h2>Participantes (nome no padrão ABNT)</h2>
+    <table class="report-table" id="tbl-participantes"></table>
+  </div>
+</main>
+
+<div class="footer-notice">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+  <span>Relatório construído com dados agregados. Os nomes exibidos seguem o padrão ABNT (sobrenome, inicial) e o gênero é mostrado apenas em contagens agregadas — ambos autorizados para divulgação pública. Contatos, documentos e demais dados pessoais dos participantes permanecem restritos à planilha de origem, conforme a <strong>LGPD</strong>.</span>
+</div>
+<div class="site-credit"><span>Powered by William Pinheiro</span><span>Fonte: Modelo PowerBI Mobilidades UEA (GCUB-MOB · ERASMUS+) — atualizado 15/07/2026</span></div>
+<div class="viz-tooltip" id="viz-tooltip"></div>
+
+<script src="lib/d3.v7.min.js"></script>
+<script src="lib/topojson-client.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/relatorio.js"></script>
+</body>
+</html>

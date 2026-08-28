@@ -570,6 +570,15 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 /* KPI grande no statbar com % ou variação secundária */
 .topbar__stat.is-highlight b { color: var(--accent-strong); }
 
+/* cartões do statbar centralizados (valor + rótulo), barra também centralizada */
+.statbar { justify-content: center; }
+.topbar__stat { text-align: center; }
+
+/* botão "Gerar relatório" no topbar__nav */
+#report-btn { padding: 8px 16px; font-size: 12px; }
+/* .btn às vezes é usado em <a> (link estilizado como botão) — sem sublinhado */
+a.btn { text-decoration: none; display: inline-block; }
+
 /* grade de stat-tiles por nível acadêmico / situação */
 .tile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .tile-grid .stat-tile b { font-size: 22px; }
@@ -646,6 +655,23 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 .flow-legend__swatch--in { background: var(--accent); }
 .flow-legend__swatch--out { background: var(--cat-2); }
 
+/* item de legenda clicável (filtro) — ex.: Mestrado/Doutorado/Graduação em Evolução por edição */
+.flow-legend__item--btn {
+  font-family: var(--font); background: none; border: 1px solid transparent; border-radius: var(--radius-pill);
+  padding: 4px 9px 4px 7px; margin: -4px -9px -4px -7px; cursor: pointer; transition: all var(--dur-fast) var(--ease);
+}
+.flow-legend__item--btn:hover { background: var(--surface-hover); }
+.flow-legend__item--btn.is-active { background: var(--accent-wash); border-color: var(--border-strong); color: var(--ink-primary); }
+
+/* botão pequeno de alternância (ex.: ocultar barras e grades) */
+.chart-toggle-btn {
+  font-family: var(--font); font-size: 10.5px; font-weight: 700; color: var(--ink-muted);
+  background: var(--surface-alt); border: 1px solid var(--border-hairline); border-radius: var(--radius-pill);
+  padding: 4px 10px; cursor: pointer; transition: all var(--dur-fast) var(--ease); white-space: nowrap;
+}
+.chart-toggle-btn:hover { color: var(--ink-primary); border-color: var(--border-strong); background: var(--surface-hover); }
+.chart-toggle-btn.is-active { background: var(--accent-wash); border-color: var(--accent); color: var(--ink-primary); }
+
 .flow-line { fill: none; cursor: pointer; transition: opacity var(--dur-fast) var(--ease), stroke-width var(--dur-fast) var(--ease); }
 .flow-line.is-dim { opacity: 0.12; }
 .flow-line--in { stroke: var(--accent); }
@@ -663,3 +689,72 @@ select.dropdown:focus { outline: none; border-color: var(--accent); box-shadow: 
 .flow-dot-country { cursor: pointer; transition: r var(--dur-fast) var(--ease); }
 .flow-country-label { font-family: var(--font); font-size: 10px; font-weight: 700; fill: var(--ink-secondary); pointer-events: none; }
 .flow-manaus-label { font-family: var(--font); font-size: 11px; font-weight: 800; fill: var(--ink-primary); pointer-events: none; }
+
+/* rótulo escrito dentro de uma barra colorida (ranking de países) —
+   precisa de uma classe própria porque .bar-label já fixa --ink-secondary */
+.bar-label-onfill { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--ink-on-accent); }
+
+/* botões coloridos do painel "Programa de mobilidade" — uma cor fixa por
+   programa, para reconhecimento rápido independente do tema */
+.mobilidade-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; border: none; border-radius: var(--radius-sm);
+  padding: 11px 14px; margin-bottom: 8px;
+  font-family: var(--font); font-size: 12.5px; font-weight: 700; color: #fff;
+  cursor: pointer; transition: all var(--dur-fast) var(--ease);
+}
+.mobilidade-btn:last-child { margin-bottom: 0; }
+.mobilidade-btn:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.mobilidade-btn.is-active { outline: 2px solid var(--ink-primary); outline-offset: 2px; }
+.mobilidade-btn span:last-child { opacity: 0.85; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.mobilidade-btn[data-programa="GCUB-MOB"] { background: #0b3d2b; }
+.mobilidade-btn[data-programa="ERASMUS+"] { background: #4169e1; }
+.mobilidade-btn[data-programa="MOVE LA AMÉRICA"] { background: #dc2626; }
+.mobilidade-btn[data-programa="PROAFRI"] { background: #eab308; color: #3a2c00; }
+
+/* ==========================================================================
+   Relatório (relatorio.html) — documento de uma coluna, pensado pra tela
+   e impressão/exportação em PDF (window.print())
+   ========================================================================== */
+.report-page { max-width: 880px; margin: 0 auto; padding: 28px 28px 80px; }
+
+.report-header { padding-bottom: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--border-hairline); }
+.report-header h1 { font-size: 22px; margin-bottom: 4px; }
+.report-header .meta { font-size: 12px; color: var(--ink-muted); line-height: 1.6; }
+.report-header .meta strong { color: var(--ink-secondary); }
+
+.report-actions { display: flex; gap: 10px; margin-bottom: 24px; }
+
+.report-section { margin-bottom: 30px; }
+.report-section h2 {
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-primary); border-bottom: 1px solid var(--border-hairline);
+  padding-bottom: 8px; margin-bottom: 14px;
+}
+
+.report-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (min-width: 640px) { .report-kpis { grid-template-columns: repeat(6, 1fr); } }
+
+.report-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.report-table th {
+  text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--ink-muted); padding: 7px 10px; border-bottom: 1px solid var(--border-strong);
+}
+.report-table td { padding: 7px 10px; border-bottom: 1px solid var(--border-hairline); color: var(--ink-secondary); }
+.report-table tr:last-child td { border-bottom: none; }
+.report-table td.num, .report-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.report-table tbody tr:nth-child(odd) { background: var(--surface-alt); }
+
+@media print {
+  .report-actions, #theme-toggle, .topbar__link, .footer-notice, .site-credit { display: none !important; }
+  :root, :root[data-theme="dark"] {
+    --surface-page: #ffffff; --surface-panel: #ffffff; --surface-alt: #f6faf8; --surface-hover: #eef8f2;
+    --ink-primary: #0b3d2b; --ink-secondary: #3a3a3c; --ink-muted: #7a8580; --ink-on-accent: #ffffff;
+    --border-hairline: #cdeedd; --border-strong: #9fd9bb;
+  }
+  body { background: #fff; }
+  .panel, .topbar, .statbar { animation: none !important; box-shadow: none !important; }
+  .report-section { break-inside: avoid; }
+  .report-table tr { break-inside: avoid; }
+}

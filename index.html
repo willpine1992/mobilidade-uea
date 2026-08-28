@@ -19,7 +19,7 @@
   </div>
 
   <nav class="topbar__nav">
-    <select class="dropdown" id="seg-modalidade" style="width:auto; max-width:220px;"></select>
+    <a href="relatorio.html" target="_blank" id="report-btn" class="btn btn--ghost">Gerar relatório</a>
     <a href="index.html" class="topbar__link is-active">Painel</a>
     <a href="flowmap.html" class="topbar__link">Mapa de Fluxo</a>
     <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Alternar tema">
@@ -35,6 +35,14 @@
 <main class="layout">
   <!-- Coluna esquerda -->
   <div class="col">
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Programa de mobilidade</span>
+        <span class="panel__hint"><span class="hint-icon" data-help="Status da base de cada programa. Clique para filtrar por programa de mobilidade.">!</span></span>
+      </div>
+      <div class="panel__body" id="modalidades-status"></div>
+    </div>
+
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Fonte de financiamento</span>
@@ -71,14 +79,6 @@
       </div>
       <div class="panel__body" id="situacao-meters"></div>
     </div>
-
-    <div class="panel">
-      <div class="panel__header">
-        <span class="panel__title">Modalidades do modelo</span>
-        <span class="panel__hint"><span class="hint-icon" data-help="Status da base de cada modalidade. Clique para filtrar por modalidade.">!</span></span>
-      </div>
-      <div class="panel__body" id="modalidades-status"></div>
-    </div>
   </div>
 
   <!-- Coluna central: mapa + evolução -->
@@ -109,10 +109,15 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Evolução por edição</span>
-        <span class="panel__hint"><span class="hint-icon" data-help="Total oficial por edição, dividido em mestrado, doutorado e graduação.">!</span></span>
+        <span class="panel__hint" style="display:inline-flex; align-items:center; gap:8px;">
+          <button type="button" id="evolucao-toggle-bars" class="chart-toggle-btn is-active">Barra</button>
+          <button type="button" id="evolucao-toggle-line" class="chart-toggle-btn is-active">Linha</button>
+          <span class="hint-icon" data-help="Total oficial por edição, dividido em mestrado, doutorado e graduação. A linha pontilhada (eixo direito) mostra o total acumulado de alunos.">!</span>
+        </span>
       </div>
       <div class="panel__body">
         <div id="evolucao-chart" style="width:100%; height:220px;"></div>
+        <div class="flow-legend" id="evolucao-legend" style="padding:6px 0 0;"></div>
       </div>
     </div>
 
