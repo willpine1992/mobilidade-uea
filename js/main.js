@@ -84,6 +84,19 @@ function hideTooltip() {
 function fmt(n) { return (n || 0).toLocaleString("pt-BR"); }
 function truncateLabel(s, n) { return s && s.length > n ? s.slice(0, n - 1) + "…" : s; }
 
+function escapeAttr(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+// Ícone "!" que troca o texto explicativo por um popup — ver initHelpTooltips
+// (aparece após ~3s de mouse parado em cima, igual ao resto do painel).
+function hintIcon(text) {
+  return `<span class="hint-icon" data-help="${escapeAttr(text)}">!</span>`;
+}
+function setHint(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = hintIcon(text);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Estado / filtros                                                        */
 /* ---------------------------------------------------------------------- */
@@ -91,7 +104,6 @@ const EDICAO_ORDER = ["2022-2023", "2023-2024", "2024-2025", "2025-2026", "2026"
 
 const state = {
   modalidade: "TODAS", // TODAS | GCUB-MOB | ERASMUS+
-  edicao: null,          // null = todas | "2022-2023" etc.
   ppg: null,              // null = todos | Codigo_PPG
   pais: null,             // null = todos | Codigo_Pais_ISO2
   continente: null,       // null = todos | Continente_Origem
@@ -101,12 +113,10 @@ const state = {
   sexo: null,             // null = todos | Sexo_Genero
   fluxo: null,            // null = todos | Fluxo_Mobilidade
   tipo: null,             // null = todos | Tipo_Mobilidade
-  origtext: null,         // null = todos | Programa_Original
 };
 
 const FILTER_LABELS = {
   modalidade: "Modalidade",
-  edicao: "Edição",
   ppg: "PPG",
   pais: "País",
   continente: "Continente",
@@ -116,12 +126,10 @@ const FILTER_LABELS = {
   sexo: "Gênero",
   fluxo: "Fluxo",
   tipo: "Tipo",
-  origtext: "Programa original",
 };
 
 function matchRow(r, exclude) {
   if (!exclude.has("modalidade") && state.modalidade !== "TODAS" && r.modalidade !== state.modalidade) return false;
-  if (!exclude.has("edicao") && state.edicao && r.edicao !== state.edicao) return false;
   if (!exclude.has("ppg") && state.ppg && r.ppg_codigo !== state.ppg) return false;
   if (!exclude.has("pais") && state.pais && r.iso2 !== state.pais) return false;
   if (!exclude.has("continente") && state.continente && r.continente !== state.continente) return false;
@@ -131,7 +139,6 @@ function matchRow(r, exclude) {
   if (!exclude.has("sexo") && state.sexo && r.sexo !== state.sexo) return false;
   if (!exclude.has("fluxo") && state.fluxo && r.fluxo !== state.fluxo) return false;
   if (!exclude.has("tipo") && state.tipo && r.tipo !== state.tipo) return false;
-  if (!exclude.has("origtext") && state.origtext && r.programa_original !== state.origtext) return false;
   return true;
 }
 
@@ -155,7 +162,6 @@ function toggleFilter(dim, value) {
 
 function clearFilters() {
   state.modalidade = "TODAS";
-  state.edicao = null;
   state.ppg = null;
   state.pais = null;
   state.continente = null;
@@ -165,14 +171,12 @@ function clearFilters() {
   state.sexo = null;
   state.fluxo = null;
   state.tipo = null;
-  state.origtext = null;
   renderAll();
 }
 
 function activeFilterChips() {
   const chips = [];
   if (state.modalidade !== "TODAS") chips.push({ dim: "modalidade", label: FILTER_LABELS.modalidade, value: state.modalidade });
-  if (state.edicao) chips.push({ dim: "edicao", label: FILTER_LABELS.edicao, value: state.edicao });
   if (state.ppg) {
     const row = MOB_ROWS.find((r) => r.ppg_codigo === state.ppg);
     chips.push({ dim: "ppg", label: FILTER_LABELS.ppg, value: row ? row.ppg : state.ppg });
@@ -188,7 +192,6 @@ function activeFilterChips() {
   if (state.sexo) chips.push({ dim: "sexo", label: FILTER_LABELS.sexo, value: state.sexo });
   if (state.fluxo) chips.push({ dim: "fluxo", label: FILTER_LABELS.fluxo, value: state.fluxo });
   if (state.tipo) chips.push({ dim: "tipo", label: FILTER_LABELS.tipo, value: state.tipo });
-  if (state.origtext) chips.push({ dim: "origtext", label: FILTER_LABELS.origtext, value: truncateLabel(state.origtext, 40) });
   return chips;
 }
 
@@ -293,28 +296,6 @@ function renderStats(rows) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Faixa de edições                                                        */
-/* ---------------------------------------------------------------------- */
-function renderEdicaoStrip() {
-  const base = getRowsExcluding("edicao");
-  const counts = countBy(base, (r) => r.edicao);
-  const el = document.getElementById("edicao-strip");
-  el.innerHTML = EDICAO_ORDER.filter((ed) => counts.has(ed)).map((ed) => `
-    <div class="edicao-card${state.edicao === ed ? " is-active" : ""}" data-edicao="${ed}">
-      <b>${fmt(counts.get(ed) || 0)}</b>
-      <small>${ed}</small>
-    </div>
-  `).join("");
-  el.querySelectorAll(".edicao-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      const ed = card.dataset.edicao;
-      state.edicao = state.edicao === ed ? null : ed;
-      renderAll();
-    });
-  });
-}
-
-/* ---------------------------------------------------------------------- */
 /* Cartões clicáveis genéricos (nível acadêmico, fluxo, tipo)               */
 /* ---------------------------------------------------------------------- */
 function renderTiles(containerId, keys, dim, rowFn) {
@@ -337,7 +318,9 @@ function renderNivelTiles() {
 }
 
 function renderFluxoTipoTiles() {
-  const fluxoKeys = [...new Set(getRowsExcluding("fluxo").map((r) => r.fluxo))];
+  // IN/OUT sempre exibidos, mesmo com 0 — Fluxo_Mobilidade hoje só tem "IN",
+  // mas ERASMUS+ já prevê OUT no modelo (ver Dim_Programas_Mobilidade).
+  const fluxoKeys = ["IN", "OUT"];
   const tipoKeys = [...new Set(getRowsExcluding("tipo").map((r) => r.tipo))];
   renderTiles("fluxo-tiles", fluxoKeys, "fluxo", (r) => r.fluxo);
   renderTiles("tipo-tiles", tipoKeys, "tipo", (r) => r.tipo);
@@ -355,9 +338,9 @@ function renderGenero() {
   const keys = GENERO_ORDER.filter((k) => c.has(k));
   const colorFor = { "Feminino": CAT_COLORS[4], "Masculino": CAT_COLORS[0], "Prefiro não declarar": readCssVar("--ink-muted"), "Não informado": readCssVar("--ink-muted") };
 
-  document.getElementById("genero-hint").textContent = state.sexo
-    ? `filtrando por ${state.sexo}`
-    : `${fmt(base.length)} participantes · clique para filtrar`;
+  setHint("genero-hint", state.sexo
+    ? `Filtrando por ${state.sexo}. Clique de novo para limpar.`
+    : `${fmt(base.length)} participantes · clique numa fatia para filtrar.`);
 
   document.getElementById("genero-splitbar").innerHTML = keys.map((k) => {
     const v = c.get(k) || 0;
@@ -392,9 +375,9 @@ function renderContinenteBars() {
   const colorIdx = { "África": 5, "Europa": 0, "América do Sul": 2, "América do Norte": 3, "Ásia": 6 };
   const c = countBy(rows, (r) => r.continente);
   const entries = order.filter((k) => c.has(k)).map((k) => [k, c.get(k)]);
-  document.getElementById("continente-hint").textContent = state.continente
-    ? `filtrando por ${state.continente}`
-    : "indicadores oficiais · clique para filtrar";
+  setHint("continente-hint", state.continente
+    ? `Filtrando por ${state.continente}. Clique de novo para limpar.`
+    : "Mostra apenas os registros aptos para indicadores oficiais. Clique numa barra para filtrar.");
   renderHBars("continente-bars", entries, {
     colorFn: ([k]) => CAT_COLORS[colorIdx[k] % CAT_COLORS.length],
     activeKey: state.continente,
@@ -403,23 +386,21 @@ function renderContinenteBars() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Programa original — auditoria (ranking das variações de texto bruto)    */
+/* PPG — siglas (Codigo_PPG), mesma dimensão de filtro do ranking por nome */
 /* ---------------------------------------------------------------------- */
-function renderOrigTextRank() {
-  const rows = getRowsExcluding("origtext").filter((r) => r.programa_original);
-  const c = countBy(rows, (r) => r.programa_original);
-  const entries = topEntries(c, 12);
-  document.getElementById("origtext-total").textContent = state.origtext
-    ? `filtrando por 1 variação`
-    : `${c.size} variações · top ${entries.length}`;
-  document.getElementById("origtext-rank").innerHTML = entries.map(([texto, v], i) => `
-    <div class="rank${state.origtext === texto ? " is-active" : ""}" data-idx="${i}">
-      <span class="rank__pos">${i + 1}</span><span class="rank__name" title="${texto.replace(/"/g, "&quot;")}">${texto}</span><span class="rank__val">${fmt(v)}</span>
-    </div>
+function renderPpgSiglas() {
+  const rows = getRowsExcluding("ppg").filter((r) => r.oficial && r.ppg_codigo !== "Não informado");
+  const c = countBy(rows, (r) => r.ppg_codigo);
+  const entries = topEntries(c, 20);
+  setHint("ppgsiglas-hint", state.ppg
+    ? `Filtrando por ${state.ppg}. Mesmo filtro do painel "Programas de pós-graduação", em siglas — clique de novo para limpar.`
+    : "Siglas de Codigo_PPG (mesmo filtro do painel \"Programas de pós-graduação\"). Clique numa sigla para filtrar.");
+  document.getElementById("ppgsiglas-badges").innerHTML = entries.map(([codigo, v]) => `
+    <button type="button" class="badge badge--link${state.ppg === codigo ? " is-active" : ""}" data-ppg="${codigo}">${codigo} <span class="muted">${fmt(v)}</span></button>
   `).join("") || '<div class="empty-hint">Sem dados.</div>';
 
-  document.querySelectorAll("#origtext-rank .rank[data-idx]").forEach((el, i) => {
-    el.addEventListener("click", () => toggleFilter("origtext", entries[i][0]));
+  document.querySelectorAll("#ppgsiglas-badges .badge[data-ppg]").forEach((el) => {
+    el.addEventListener("click", () => toggleFilter("ppg", el.dataset.ppg));
   });
 }
 
@@ -434,9 +415,9 @@ function renderSituacaoMeters() {
   const base = getRowsExcluding("situacao");
   const c = countBy(base, (r) => r.situacao);
   const total = base.length || 1;
-  document.getElementById("situacao-total").textContent = state.situacao
-    ? `filtrando por ${state.situacao}`
-    : `${fmt(base.length)} registros · clique para filtrar`;
+  setHint("situacao-total", state.situacao
+    ? `Filtrando por ${state.situacao}. Clique de novo para limpar.`
+    : `${fmt(base.length)} registros · clique numa situação para filtrar.`);
   document.getElementById("situacao-meters").innerHTML = SITUACAO_LABELS.map((label) => {
     const v = c.get(label) || 0;
     const pct = Math.round((v / total) * 100);
@@ -562,7 +543,7 @@ function renderMapLegend(maxV) {
 /* Evolução por edição (barras empilhadas por nível)                       */
 /* ---------------------------------------------------------------------- */
 function renderEvolucaoChart() {
-  const base = getRowsExcluding("edicao").filter((r) => r.oficial);
+  const base = getFilteredRows().filter((r) => r.oficial);
   const el = document.getElementById("evolucao-chart");
   if (!el) return;
   const width = el.clientWidth, height = el.clientHeight;
@@ -677,9 +658,9 @@ function renderFinanciamentoBars() {
   const rows = getRowsExcluding("financiamento");
   const c = countBy(rows, (r) => r.financiamento);
   const entries = topEntries(c, 8);
-  document.getElementById("financiamento-hint").textContent = state.financiamento
-    ? `filtrando por ${state.financiamento}`
-    : "clique para filtrar";
+  setHint("financiamento-hint", state.financiamento
+    ? `Filtrando por ${state.financiamento}. Clique de novo para limpar.`
+    : "Clique numa barra para filtrar por fonte de financiamento.");
   renderHBars("financiamento-bars", entries, {
     colorFn: ([k]) => (k === "Não informado" ? readCssVar("--ink-muted") : CAT_COLORS[0]),
     activeKey: state.financiamento,
@@ -695,9 +676,9 @@ function renderPaisRank() {
   const nameByIso = new Map(rows.map((r) => [r.iso2, r.pais]));
   const c = countBy(rows, (r) => r.iso2);
   const entries = topEntries(c, 20);
-  document.getElementById("pais-total").textContent = state.pais
-    ? `filtrando por ${nameByIso.get(state.pais) || state.pais}`
-    : `${entries.length} países · clique para filtrar`;
+  setHint("pais-total", state.pais
+    ? `Filtrando por ${nameByIso.get(state.pais) || state.pais}. Clique de novo para limpar.`
+    : `${entries.length} países · clique para filtrar.`);
   document.getElementById("pais-rank").innerHTML = entries.map(([iso2, v], i) => `
     <div class="rank${state.pais === iso2 ? " is-active" : ""}" data-pais="${iso2}">
       <span class="rank__pos">${i + 1}</span><span class="rank__name">${nameByIso.get(iso2)}</span><span class="rank__val">${fmt(v)}</span>
@@ -714,9 +695,9 @@ function renderPpgRank() {
   const nameByCode = new Map(rows.map((r) => [r.ppg_codigo, r.ppg]));
   const c = countBy(rows, (r) => r.ppg_codigo);
   const entries = topEntries(c, 20);
-  document.getElementById("ppg-total").textContent = state.ppg
-    ? `filtrando por ${nameByCode.get(state.ppg) || state.ppg}`
-    : `${entries.length} PPGs · clique para filtrar`;
+  setHint("ppg-total", state.ppg
+    ? `Filtrando por ${nameByCode.get(state.ppg) || state.ppg}. Clique de novo para limpar.`
+    : `${entries.length} PPGs · clique para filtrar.`);
   document.getElementById("ppg-rank").innerHTML = entries.map(([codigo, v], i) => `
     <div class="rank${state.ppg === codigo ? " is-active" : ""}" data-ppg="${codigo}">
       <span class="rank__pos">${i + 1}</span><span class="rank__name">${nameByCode.get(codigo)}</span><span class="rank__val">${fmt(v)}</span>
@@ -738,7 +719,7 @@ function renderParticipantesList(rows) {
     .filter((r) => !q || [r.nome_abnt, r.pais, r.ppg].filter(Boolean).join(" ").toLowerCase().includes(q))
     .sort((a, b) => a.nome_abnt.localeCompare(b.nome_abnt, "pt-BR"));
 
-  document.getElementById("participantes-total").textContent = `${fmt(list.length)} participante${list.length === 1 ? "" : "s"} · nome no padrão ABNT`;
+  setHint("participantes-total", `${fmt(list.length)} participante${list.length === 1 ? "" : "s"} · nome no padrão ABNT (sobrenome, inicial).`);
   document.getElementById("participantes-list").innerHTML = list.map((r) => `
     <div class="pickrow" style="cursor:default;">
       <span class="dot" style="background:${r.oficial ? "var(--accent)" : "var(--border-strong)"}"></span>
@@ -755,7 +736,6 @@ function renderAll() {
   const rows = getFilteredRows();
   renderFiltersBar();
   renderSegModalidade();
-  renderEdicaoStrip();
   renderStats(rows);
   renderNivelTiles();
   renderGenero();
@@ -766,7 +746,7 @@ function renderAll() {
   renderFinanciamentoBars();
   renderPaisRank();
   renderPpgRank();
-  renderOrigTextRank();
+  renderPpgSiglas();
   renderParticipantesList(rows);
   renderMap();
   renderEvolucaoChart();
@@ -803,7 +783,7 @@ function initHelpTooltips() {
       el.style.left = r.left + "px";
       el.style.top = r.bottom + 10 + "px";
       el.classList.add("is-visible");
-    }, 550);
+    }, 3000);
   });
   document.body.addEventListener("mouseout", (ev) => {
     const t = ev.target.closest("[data-help]");

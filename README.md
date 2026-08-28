@@ -16,8 +16,9 @@ com um dicionário de dados e medidas DAX próprios.
 - 66 registros consolidados: 55 GCUB-MOB + 11 ERASMUS+.
 - Modalidades "Move La América" e "PROAFRI" já estão no modelo, mas ainda
   sem dados (`Aguardando dados`).
-- Atualizado pela última vez em 28/08/2026 (inclusão das colunas
-  `Nome_ABNT` e `Sexo_Genero`, ver seção Privacidade).
+- Atualizado pela última vez em 28/08/2026 (`Nome_ABNT` passou a trazer
+  todas as iniciais do nome — SOBRENOME, I. I. I. — em vez de só a
+  primeira; ver seção Privacidade).
 
 ## O modelo de dados
 
@@ -39,10 +40,10 @@ tem duas mobilidades aparece duas vezes). Principais colunas:
 | `Nivel_Academico` | Mestrado, Doutorado ou Graduação |
 | `Situacao_Participacao` | Recebido, A confirmar, Chegada prevista, Desistente, Em conferência – possível desligamento |
 | `Fonte_Financiamento` | CAPES, FAPEAM, CNPq, ERASMUS+ ou Não informado |
-| `Fluxo_Mobilidade` | direção do fluxo (`IN` — todos os 66 registros atuais; `OUT` está previsto no modelo mas ainda sem dados) |
+| `Fluxo_Mobilidade` | direção do fluxo (`IN` — todos os 66 registros atuais; o cartão "Fluxo" sempre mostra IN e OUT lado a lado, OUT com 0 até a modalidade ERASMUS+ passar a registrar saídas) |
 | `Tipo_Mobilidade` | Mobilidade acadêmica (GCUB-MOB) ou Mobilidade breve (ERASMUS+) |
-| `Programa_Original` | texto exatamente como veio na planilha de origem, antes da padronização por PPG — usado no painel "Programa Original (auditoria)" para expor variações de digitação |
-| `Status_Qualidade_Dado` | Validado, Parcial ou Pendente — resultado da conferência do registro (usado nos indicadores, não tem mais painel próprio no dashboard) |
+| `Programa_Original` | texto exatamente como veio na planilha de origem, antes da padronização por PPG — usado só para auditoria interna (`js/data.js` traz o campo, mas não tem painel próprio na página pública; o painel "PPG — Siglas" usa `Codigo_PPG` no lugar) |
+| `Status_Qualidade_Dado` | Validado, Parcial ou Pendente — resultado da conferência do registro (usado nos indicadores, não tem painel próprio no dashboard) |
 | `Incluir_Indicadores_Oficiais` / `Incluir_Recebidos` | flags booleanas (Sim/Não) que decidem se a linha entra nos indicadores oficiais e no cartão de recebidos — usadas em vez de recalcular regras a cada gráfico |
 
 ### Dimensões usadas neste painel
@@ -53,9 +54,10 @@ tem duas mobilidades aparece duas vezes). Principais colunas:
   de modalidade no topo do painel.
 - **`Dim_Participantes_dados reais`** — uma linha por pessoa. Além dos
   campos restritos (ver Privacidade), tem as colunas `Nome_ABNT` (nome
-  formatado como citação acadêmica, SOBRENOME, Inicial.) e `Sexo_Genero`
-  (categoria demográfica agregada) — as únicas duas informações desta
-  dimensão usadas na página pública.
+  formatado como citação acadêmica, SOBRENOME, I. I. I. — uma inicial por
+  nome/sobrenome do meio) e `Sexo_Genero` (categoria demográfica
+  agregada) — as únicas duas informações desta dimensão usadas na página
+  pública.
 - Dimensões auxiliares não carregadas neste painel (redundantes com as
   colunas já desnormalizadas na fato, mas presentes no modelo Power BI
   original): `Dim_Paises`, `Dim_Programas`, `Dim_Edicoes`,
@@ -98,8 +100,8 @@ restrita:
   também as colunas `Nome_ABNT` e `Sexo_Genero` de `Dim_Participantes_dados
   reais` (na lista "Participantes" e no painel "Gênero", respectivamente).
   Ambas foram explicitamente autorizadas pela UEA/PROPESP para divulgação
-  pública: o nome no formato ABNT (sobrenome + inicial do primeiro nome) é
-  uma forma de citação acadêmica, não o nome completo; o gênero é exibido
+  pública: o nome no formato ABNT (sobrenome + iniciais dos demais nomes)
+  é uma forma de citação acadêmica, não o nome completo; o gênero é exibido
   apenas como contagem agregada, nunca associado a um nome individual na
   mesma visualização. Nenhum e-mail, telefone, matrícula ou documento é
   exibido aqui.
@@ -142,23 +144,28 @@ python3 -m http.server 8080
 
 ## Funcionalidades (página pública)
 
-- **Filtros clicáveis em praticamente todo painel** — modalidade, edição,
-  nível acadêmico, gênero, situação da participação, continente, PPG,
-  país, fluxo/tipo de mobilidade, fonte de financiamento e programa
-  original — todos combináveis entre si.
+- **Filtros clicáveis em praticamente todo painel** — modalidade, nível
+  acadêmico, gênero, situação da participação, continente, PPG (por nome
+  completo ou por sigla — mesma dimensão, dois painéis), país,
+  fluxo/tipo de mobilidade e fonte de financiamento — todos combináveis
+  entre si. Não há mais filtro por edição (o painel "Edições" foi
+  removido; "Evolução por edição" continua mostrando a linha do tempo
+  completa como contexto, sem ser um filtro).
 - **Barra de filtros ativos** logo abaixo dos indicadores, com um chip
   removível por filtro e um botão "Limpar filtros".
+- **Ícones de ajuda (`!`)** no lugar do texto explicativo de cada painel —
+  passe o mouse e espere ~3s para ver o popup com a explicação completa
+  (mesmo padrão usado nos cartões de KPI do topo).
 - Mapa coroplético dos países de origem (indicadores oficiais).
-- Evolução por edição (mestrado × doutorado × graduação), independente do
-  filtro de edição, para manter a linha do tempo completa como contexto.
+- Evolução por edição (mestrado × doutorado × graduação).
 - Infográfico de gênero (barra dividida + legenda com percentuais).
-- Painel "Programa Original (auditoria)" — ranking das variações de texto
-  exatamente como vieram da planilha de origem, antes da padronização por
-  PPG (útil para achar inconsistências de digitação).
+- Painel "PPG — Siglas" — mesma dimensão de `Programas de pós-graduação`,
+  em formato de etiquetas com o `Codigo_PPG` (sigla) em vez do nome
+  completo.
+- Cartões de Fluxo (IN/OUT) e Tipo de Mobilidade.
 - Lista de participantes com nome em formato ABNT, com busca por nome/
   país/PPG, logo abaixo do gráfico de evolução.
-- Rankings de países e PPGs, fonte de financiamento, fluxo e tipo de
-  mobilidade.
+- Rankings de países e PPGs, fonte de financiamento.
 - Tema claro/escuro persistido (localStorage), sem flash no carregamento
   e com todos os gráficos recolorindo corretamente ao trocar de tema.
 

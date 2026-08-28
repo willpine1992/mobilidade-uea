@@ -31,22 +31,20 @@
 <div class="filters-bar" id="filters-bar"></div>
 
 <main class="layout">
-  <!-- Coluna esquerda: filtros e edições -->
+  <!-- Coluna esquerda -->
   <div class="col">
     <div class="panel">
       <div class="panel__header">
-        <span class="panel__title">Edições</span>
-        <span class="panel__hint">clique para filtrar</span>
+        <span class="panel__title">Fonte de financiamento</span>
+        <span class="panel__hint" id="financiamento-hint"></span>
       </div>
-      <div class="panel__body">
-        <div class="edicao-strip" id="edicao-strip"></div>
-      </div>
+      <div class="panel__body" id="financiamento-bars"></div>
     </div>
 
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Nível acadêmico</span>
-        <span class="panel__hint">clique para filtrar</span>
+        <span class="panel__hint"><span class="hint-icon" data-help="Clique num nível para filtrar todo o painel.">!</span></span>
       </div>
       <div class="panel__body">
         <div class="tile-grid" id="nivel-tiles"></div>
@@ -56,7 +54,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Gênero</span>
-        <span class="panel__hint" id="genero-hint">clique para filtrar</span>
+        <span class="panel__hint" id="genero-hint"></span>
       </div>
       <div class="panel__body">
         <div class="split-bar" id="genero-splitbar"></div>
@@ -75,7 +73,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Modalidades do modelo</span>
-        <span class="panel__hint" id="modalidades-hint">status da base · clique para filtrar</span>
+        <span class="panel__hint"><span class="hint-icon" data-help="Status da base de cada modalidade. Clique para filtrar por modalidade.">!</span></span>
       </div>
       <div class="panel__body" id="modalidades-status"></div>
     </div>
@@ -86,7 +84,7 @@
     <div class="panel panel--grow" style="min-height:360px;">
       <div class="panel__header">
         <span class="panel__title">Países de origem</span>
-        <span class="panel__hint">indicadores oficiais · passe o mouse sobre um país</span>
+        <span class="panel__hint"><span class="hint-icon" data-help="Mostra apenas os registros aptos para indicadores oficiais. Passe o mouse sobre um país para ver o total.">!</span></span>
       </div>
       <div class="panel__body" style="overflow:visible;">
         <div id="map-container" style="width:100%; height:340px;"></div>
@@ -101,7 +99,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Continente de Origem</span>
-        <span class="panel__hint" id="continente-hint">indicadores oficiais · clique para filtrar</span>
+        <span class="panel__hint" id="continente-hint"></span>
       </div>
       <div class="panel__body" id="continente-bars"></div>
     </div>
@@ -109,7 +107,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Evolução por edição</span>
-        <span class="panel__hint">total oficial · mestrado vs. doutorado vs. graduação</span>
+        <span class="panel__hint"><span class="hint-icon" data-help="Total oficial por edição, dividido em mestrado, doutorado e graduação.">!</span></span>
       </div>
       <div class="panel__body">
         <div id="evolucao-chart" style="width:100%; height:220px;"></div>
@@ -119,7 +117,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Fluxo &amp; Tipo de Mobilidade</span>
-        <span class="panel__hint">clique para filtrar</span>
+        <span class="panel__hint"><span class="hint-icon" data-help="Clique num cartão de fluxo ou tipo para filtrar o painel inteiro.">!</span></span>
       </div>
       <div class="panel__body">
         <div class="subgroup-label">Fluxo</div>
@@ -132,7 +130,7 @@
     <div class="panel">
       <div class="panel__header">
         <span class="panel__title">Participantes</span>
-        <span class="panel__hint" id="participantes-total">nome no padrão ABNT (sobrenome, inicial)</span>
+        <span class="panel__hint" id="participantes-total"></span>
       </div>
       <div class="panel__body">
         <div class="search-box">
@@ -162,26 +160,20 @@
       <div class="panel__body" id="ppg-rank"></div>
     </div>
 
-    <div class="panel panel--grow" style="min-height:160px;">
-      <div class="panel__header">
-        <span class="panel__title">Programa Original (auditoria)</span>
-        <span class="panel__hint" id="origtext-total" data-help="Texto exatamente como veio na planilha de origem, antes da padronização por PPG. Útil para conferir inconsistências de digitação e variações de nome do mesmo programa.">principais variações</span>
-      </div>
-      <div class="panel__body" id="origtext-rank"></div>
-    </div>
-
     <div class="panel">
       <div class="panel__header">
-        <span class="panel__title">Fonte de financiamento</span>
-        <span class="panel__hint" id="financiamento-hint">clique para filtrar</span>
+        <span class="panel__title">PPG — Siglas</span>
+        <span class="panel__hint" id="ppgsiglas-hint"></span>
       </div>
-      <div class="panel__body" id="financiamento-bars"></div>
+      <div class="panel__body">
+        <div class="badge-row" id="ppgsiglas-badges" style="margin-top:0;"></div>
+      </div>
     </div>
 
     <div class="panel">
       <div class="notice">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-        <span>Painel construído com dados agregados. Os nomes exibidos seguem o padrão ABNT (sobrenome, inicial) e o gênero é mostrado apenas em contagens agregadas — ambos autorizados para divulgação pública. Contatos, documentos e demais dados pessoais dos participantes permanecem restritos à planilha de origem, conforme orientação da aba <strong>Instruções</strong> do modelo.</span>
+        <span>Painel construído com dados agregados. Os nomes exibidos seguem o padrão ABNT (sobrenome, inicial) e o gênero é mostrado apenas em contagens agregadas — ambos autorizados para divulgação pública. Contatos, documentos e demais dados pessoais dos participantes permanecem restritos à planilha de origem, conforme a <strong>LGPD</strong>.</span>
       </div>
     </div>
   </div>
