@@ -475,6 +475,26 @@ function renderPpgRank(rows) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Lista de participantes (nome no padrão ABNT) — abaixo de "Evolução por edição" */
+/* ---------------------------------------------------------------------- */
+function renderParticipantesList(rows) {
+  const q = (document.getElementById("participantes-search").value || "").trim().toLowerCase();
+  const list = rows
+    .filter((r) => r.nome_abnt)
+    .filter((r) => !q || [r.nome_abnt, r.pais, r.ppg].filter(Boolean).join(" ").toLowerCase().includes(q))
+    .sort((a, b) => a.nome_abnt.localeCompare(b.nome_abnt, "pt-BR"));
+
+  document.getElementById("participantes-total").textContent = `${fmt(list.length)} participante${list.length === 1 ? "" : "s"} · nome no padrão ABNT`;
+  document.getElementById("participantes-list").innerHTML = list.map((r) => `
+    <div class="pickrow" style="cursor:default;">
+      <span class="dot" style="background:${r.oficial ? "var(--accent)" : "var(--border-strong)"}"></span>
+      <span class="label">${r.nome_abnt}</span>
+      <span class="count">${r.pais} · ${r.edicao}</span>
+    </div>
+  `).join("") || '<div class="empty-hint">Nenhum participante encontrado.</div>';
+}
+
+/* ---------------------------------------------------------------------- */
 /* Orquestração                                                            */
 /* ---------------------------------------------------------------------- */
 function renderAll() {
@@ -489,6 +509,7 @@ function renderAll() {
   renderFinanciamentoBars(rows);
   renderPaisRank(rows);
   renderPpgRank(rows);
+  renderParticipantesList(rows);
   renderMap();
   renderEvolucaoChart();
 }
@@ -497,6 +518,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initThemeToggle();
   renderAll();
   initHelpTooltips();
+  document.getElementById("participantes-search").addEventListener("input", () => renderParticipantesList(getFilteredRows()));
 });
 
 /* ---------------------------------------------------------------------- */
